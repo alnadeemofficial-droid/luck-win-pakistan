@@ -662,6 +662,31 @@ const AdminDashboard: React.FC<Props> = ({
                 {localStorage.getItem('showNoPassLogin') === 'true' ? 'ON' : 'OFF'}
               </button>
             </div>
+            
+            <div className="flex items-center justify-between border-t pt-4">
+              <span className="text-xs font-bold text-gray-700">گوگل شیٹ کنکشن ٹیسٹ (Test Google Sheet)</span>
+              <button 
+                onClick={async () => {
+                  if (confirm('کیا آپ واقعی 5 ٹیسٹ کارڈز شامل کرنا چاہتے ہیں؟ اس سے پرانے کارڈز ڈیلیٹ ہو سکتے ہیں۔')) {
+                    try {
+                      const res = await fetch('/api/test-seed', { method: 'POST' });
+                      const data = await res.json();
+                      if (data.success) {
+                        alert('کامیابی! 5 کارڈز شامل کر دیے گئے ہیں۔');
+                        window.location.reload();
+                      } else {
+                        alert('ناکامی: ' + data.message);
+                      }
+                    } catch (err) {
+                      alert('ایرر: کنکشن فیل ہو گیا۔');
+                    }
+                  }
+                }}
+                className="px-4 py-2 rounded-full text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all"
+              >
+                ٹیسٹ کریں (Add 5 Cards)
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-3xl border overflow-hidden shadow-sm divide-y divide-gray-100">

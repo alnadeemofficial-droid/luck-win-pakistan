@@ -215,6 +215,82 @@ app.post("/api/announcements", async (req, res) => {
   res.json({ success: true });
 });
 
+app.post("/api/test-seed", async (req, res) => {
+  if (!checkEnvVars()) {
+    return res.status(500).json({ success: false, message: "Missing environment variables" });
+  }
+
+  const dummyTiers = [
+    {
+      id: '1',
+      investAmount: '1000',
+      winAmount: '2000',
+      membersNeeded: '10',
+      currentMembers: '0',
+      qrData: '03001234567',
+      qrImage: '',
+      color: 'bg-blue-500',
+      isExpired: 'FALSE',
+      drawCompleted: 'FALSE'
+    },
+    {
+      id: '2',
+      investAmount: '2000',
+      winAmount: '4500',
+      membersNeeded: '15',
+      currentMembers: '0',
+      qrData: '03001234567',
+      qrImage: '',
+      color: 'bg-purple-500',
+      isExpired: 'FALSE',
+      drawCompleted: 'FALSE'
+    },
+    {
+      id: '3',
+      investAmount: '5000',
+      winAmount: '12000',
+      membersNeeded: '20',
+      currentMembers: '0',
+      qrData: '03001234567',
+      qrImage: '',
+      color: 'bg-green-500',
+      isExpired: 'FALSE',
+      drawCompleted: 'FALSE'
+    },
+    {
+      id: '4',
+      investAmount: '10000',
+      winAmount: '25000',
+      membersNeeded: '25',
+      currentMembers: '0',
+      qrData: '03001234567',
+      qrImage: '',
+      color: 'bg-red-500',
+      isExpired: 'FALSE',
+      drawCompleted: 'FALSE'
+    },
+    {
+      id: '5',
+      investAmount: '25000',
+      winAmount: '70000',
+      membersNeeded: '30',
+      currentMembers: '0',
+      qrData: '03001234567',
+      qrImage: '',
+      color: 'bg-yellow-500',
+      isExpired: 'FALSE',
+      drawCompleted: 'FALSE'
+    }
+  ];
+
+  const success = await overwriteSheet('Tiers', dummyTiers);
+  if (success) {
+    res.json({ success: true, message: "5 Test Tiers added to Google Sheet!" });
+  } else {
+    res.status(500).json({ success: false, message: "Failed to write to Google Sheet" });
+  }
+});
+
 app.post("/api/admin/login", (req, res) => {
   const { password } = req.body;
   // Ensure ADMIN_PASSWORD is set in environment variables
