@@ -146,7 +146,7 @@ const AdminDashboard: React.FC<Props> = ({
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">پاسورڈ درج کریں (Enter Password)</label>
               <input 
-                type="password" 
+                type="text" 
                 value={adminPassword}
                 onChange={e => setAdminPassword(e.target.value)}
                 placeholder="••••••••"
@@ -157,6 +157,18 @@ const AdminDashboard: React.FC<Props> = ({
             <button type="submit" className="w-full py-5 bg-green-600 text-white rounded-2xl font-black shadow-xl shadow-green-100 hover:bg-green-700 active:scale-95 transition-all uppercase tracking-widest text-sm">
               ایکسیس حاصل کریں
             </button>
+            
+            {/* No Password Login Button (Controlled by localStorage for now, can be updated via Admin Panel later) */}
+            {localStorage.getItem('showNoPassLogin') === 'true' && (
+              <button 
+                type="button" 
+                onClick={() => setIsAdminAuthenticated(true)}
+                className="w-full py-3 bg-yellow-100 text-yellow-700 rounded-2xl font-black hover:bg-yellow-200 transition-all text-xs uppercase tracking-widest"
+              >
+                بغیر پاسورڈ لاگ ان (No Password Login)
+              </button>
+            )}
+
             <button type="button" onClick={onBack} className="w-full py-3 text-gray-400 font-bold text-xs uppercase hover:text-gray-600 transition-all">
               واپس جائیں (Back)
             </button>
@@ -632,6 +644,24 @@ const AdminDashboard: React.FC<Props> = ({
                <span className="text-[10px] font-black text-gray-400">آہستہ</span>
              </div>
              <p className="text-[10px] text-gray-400 text-center font-bold">موجودہ سپیڈ: {marqueeSpeed} سیکنڈز</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+            <h3 className="font-black border-b pb-3">ایڈمن سیٹنگز (Admin Settings)</h3>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-700">بغیر پاسورڈ لاگ ان بٹن دکھائیں (Show No Password Login)</span>
+              <button 
+                onClick={() => {
+                  const current = localStorage.getItem('showNoPassLogin') === 'true';
+                  localStorage.setItem('showNoPassLogin', (!current).toString());
+                  // Force re-render (simple way)
+                  window.location.reload();
+                }}
+                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all ${localStorage.getItem('showNoPassLogin') === 'true' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'}`}
+              >
+                {localStorage.getItem('showNoPassLogin') === 'true' ? 'ON' : 'OFF'}
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-3xl border overflow-hidden shadow-sm divide-y divide-gray-100">
