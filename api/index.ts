@@ -11,17 +11,41 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
-// Google Sheets Setup
-const serviceAccountAuth = new JWT({
-  email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-});
+// Debug helper to check env vars (logs to Vercel functions console)
+const checkEnvVars = () => {
+  const missing = [];
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) missing.push('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+  if (!process.env.GOOGLE_PRIVATE_KEY) missing.push('GOOGLE_PRIVATE_KEY');
+  if (!process.env.GOOGLE_SHEET_ID) missing.push('GOOGLE_SHEET_ID');
+  if (!process.env.ADMIN_PASSWORD) missing.push('ADMIN_PASSWORD');
+  
+  if (missing.length > 0) {
+    console.error("Missing Environment Variables:", missing.join(", "));
+    return false;
+  }
+  return true;
+};
 
-const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID as string, serviceAccountAuth);
+// Google Sheets Setup
+let doc: GoogleSpreadsheet | null = null;
+
+try {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_SHEET_ID) {
+    const serviceAccountAuth = new JWT({
+      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, ''), // Remove extra quotes if present
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
+  }
+} catch (err) {
+  console.error("Failed to initialize Google Sheets:", err);
+}
 
 // Helper to get sheet data
 async function getSheetData(sheetTitle: string) {
+  if (!doc) return [];
   try {
     await doc.loadInfo();
     let sheet = doc.sheetsByTitle[sheetTitle];
@@ -38,6 +62,7 @@ async function getSheetData(sheetTitle: string) {
 
 // Helper to add row
 async function addRow(sheetTitle: string, data: any) {
+  if (!doc) return false;
   try {
     await doc.loadInfo();
     let sheet = doc.sheetsByTitle[sheetTitle];
@@ -56,6 +81,7 @@ async function addRow(sheetTitle: string, data: any) {
 
 // Helper to update row
 async function updateRow(sheetTitle: string, id: string, updates: any) {
+  if (!doc) return false;
   try {
     await doc.loadInfo();
     const sheet = doc.sheetsByTitle[sheetTitle];
@@ -76,6 +102,7 @@ async function updateRow(sheetTitle: string, id: string, updates: any) {
 
 // Helper to overwrite sheet (for bulk updates like Tiers/Announcements)
 async function overwriteSheet(sheetTitle: string, data: any[]) {
+  if (!doc) return false;
   try {
     await doc.loadInfo();
     let sheet = doc.sheetsByTitle[sheetTitle];
@@ -99,8 +126,8 @@ async function overwriteSheet(sheetTitle: string, data: any[]) {
 
 // API Routes
 app.get("/api/data", async (req, res) => {
-  if (!process.env.GOOGLE_SHEET_ID || !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
-    return res.json({ participants: [], tiers: [], announcements: [] });
+  if (!checkEnvVars()) {
+    return res.status(500).json({ error: "Server configuration error: Missing environment variables" });
   }
   const participants = await getSheetData('Participants');
   const tiers = await getSheetData('Tiers');
