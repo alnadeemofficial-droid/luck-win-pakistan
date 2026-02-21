@@ -70,6 +70,11 @@ const App: React.FC = () => {
 
     const savedPaused = localStorage.getItem('luckwin_paused');
     if (savedPaused) setMarqueePaused(savedPaused === 'true');
+
+    // Enable No Password Login by default for the first time
+    if (localStorage.getItem('showNoPassLogin') === null) {
+      localStorage.setItem('showNoPassLogin', 'true');
+    }
   }, []);
 
   useEffect(() => {
