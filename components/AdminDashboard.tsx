@@ -668,15 +668,23 @@ const AdminDashboard: React.FC<Props> = ({
                   if (confirm('کیا آپ واقعی 5 ٹیسٹ کارڈز شامل کرنا چاہتے ہیں؟ اس سے پرانے کارڈز ڈیلیٹ ہو سکتے ہیں۔')) {
                     try {
                       const res = await fetch('/api/test-seed', { method: 'POST' });
-                      const data = await res.json();
-                      if (data.success) {
-                        alert('کامیابی! 5 کارڈز شامل کر دیے گئے ہیں۔');
-                        window.location.reload();
-                      } else {
-                        alert('ناکامی: ' + data.message);
+                      const text = await res.text(); // Get raw text first
+                      
+                      try {
+                        const data = JSON.parse(text); // Try to parse JSON
+                        if (data.success) {
+                          alert('کامیابی! 5 کارڈز شامل کر دیے گئے ہیں۔');
+                          window.location.reload();
+                        } else {
+                          alert('ناکامی: ' + data.message);
+                        }
+                      } catch (e) {
+                        // If JSON parse fails, show the raw text (likely HTML error)
+                        console.error("Server Error:", text);
+                        alert('سرور ایرر (Server Error):\n' + text.substring(0, 200)); // Show first 200 chars
                       }
                     } catch (err) {
-                      alert('ایرر: کنکشن فیل ہو گیا۔');
+                      alert('ایرر: نیٹ ورک کنکشن فیل ہو گیا۔ (Network Error)');
                     }
                   }
                 }}

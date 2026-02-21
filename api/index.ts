@@ -43,6 +43,11 @@ try {
   console.error("Failed to initialize Google Sheets:", err);
 }
 
+// Health Check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", env: checkEnvVars() ? "configured" : "missing" });
+});
+
 // Helper to get sheet data
 async function getSheetData(sheetTitle: string) {
   if (!doc) return [];
