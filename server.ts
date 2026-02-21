@@ -193,7 +193,12 @@ async function startServer() {
 
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || '12345';
+    // Ensure ADMIN_PASSWORD is set in environment variables
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      console.error("ADMIN_PASSWORD environment variable is not set.");
+      return res.status(500).json({ success: false, message: "Server configuration error" });
+    }
     if (password === adminPassword) {
       res.json({ success: true });
     } else {
