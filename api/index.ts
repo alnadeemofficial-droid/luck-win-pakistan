@@ -1,6 +1,5 @@
 import express from "express";
 import { GoogleSpreadsheet } from "google-spreadsheet";
-import { JWT } from "google-auth-library";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -29,36 +28,52 @@ const checkEnvVars = () => {
 // Google Sheets Setup
 let doc: GoogleSpreadsheet | null = null;
 
-try {
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_SHEET_ID) {
-    const serviceAccountAuth = new JWT({
-      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, ''), // Remove extra quotes if present
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
-    doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
+async function initGoogleSheets() {
+  if (doc) return doc;
+  
+  try {
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_SHEET_ID) {
+      const newDoc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID);
+      
+      await newDoc.useServiceAccountAuth({
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, ''),
+      });
+      
+      doc = newDoc;
+      return doc;
+    }
+  } catch (err) {
+    console.error("Failed to initialize Google Sheets:", err);
+    return null;
   }
-} catch (err) {
-  console.error("Failed to initialize Google Sheets:", err);
+  return null;
 }
-
-// Health Check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", env: checkEnvVars() ? "configured" : "missing" });
-});
 
 // Helper to get sheet data
 async function getSheetData(sheetTitle: string) {
-  if (!doc) return [];
+  const currentDoc = await initGoogleSheets();
+  if (!currentDoc) return [];
+  
   try {
-    await doc.loadInfo();
-    let sheet = doc.sheetsByTitle[sheetTitle];
+    await currentDoc.loadInfo();
+    let sheet = currentDoc.sheetsByTitle[sheetTitle];
     if (!sheet) {
-      sheet = await doc.addSheet({ title: sheetTitle });
+      sheet = await currentDoc.addSheet({ title: sheetTitle });
     }
     const rows = await sheet.getRows();
-    return rows.map(row => row.toObject());
+    
+    // Convert to plain object
+    return rows.map(row => {
+      const obj: any = {};
+      sheet.headerValues.forEach((header: string) => {
+        obj[header] = row[header];
+      });
+      // Add ID if available (usually row.id or row._rowNumber but let's stick to headers)
+      // If we need the row ID for updates, v4 rows have 'id' property? No, they have rowIndex.
+      // But our app uses a column named 'id'.
+      return obj;
+    });
   } catch (error) {
     console.error(`Error fetching ${sheetTitle}:`, error);
     return [];
@@ -67,14 +82,16 @@ async function getSheetData(sheetTitle: string) {
 
 // Helper to add row
 async function addRow(sheetTitle: string, data: any) {
-  if (!doc) return false;
+  const currentDoc = await initGoogleSheets();
+  if (!currentDoc) return false;
+  
   try {
-    await doc.loadInfo();
-    let sheet = doc.sheetsByTitle[sheetTitle];
+    await currentDoc.loadInfo();
+    let sheet = currentDoc.sheetsByTitle[sheetTitle];
     if (!sheet) {
       // Create sheet with headers if not exists
       const headers = Object.keys(data);
-      sheet = await doc.addSheet({ title: sheetTitle, headerValues: headers });
+      sheet = await currentDoc.addSheet({ title: sheetTitle, headerValues: headers });
     }
     await sheet.addRow(data);
     return true;
@@ -86,15 +103,20 @@ async function addRow(sheetTitle: string, data: any) {
 
 // Helper to update row
 async function updateRow(sheetTitle: string, id: string, updates: any) {
-  if (!doc) return false;
+  const currentDoc = await initGoogleSheets();
+  if (!currentDoc) return false;
+  
   try {
-    await doc.loadInfo();
-    const sheet = doc.sheetsByTitle[sheetTitle];
+    await currentDoc.loadInfo();
+    const sheet = currentDoc.sheetsByTitle[sheetTitle];
     if (!sheet) return false;
     const rows = await sheet.getRows();
-    const row = rows.find(r => r.get('id') === id);
+    // Find row by 'id' column
+    const row = rows.find(r => r['id'] === id);
     if (row) {
-      Object.assign(row, updates);
+      Object.keys(updates).forEach(key => {
+        row[key] = updates[key];
+      });
       await row.save();
       return true;
     }
@@ -107,10 +129,12 @@ async function updateRow(sheetTitle: string, id: string, updates: any) {
 
 // Helper to overwrite sheet (for bulk updates like Tiers/Announcements)
 async function overwriteSheet(sheetTitle: string, data: any[]) {
-  if (!doc) return false;
+  const currentDoc = await initGoogleSheets();
+  if (!currentDoc) return false;
+  
   try {
-    await doc.loadInfo();
-    let sheet = doc.sheetsByTitle[sheetTitle];
+    await currentDoc.loadInfo();
+    let sheet = currentDoc.sheetsByTitle[sheetTitle];
     if (sheet) {
       await sheet.clear();
       if (data.length > 0) {
@@ -118,8 +142,8 @@ async function overwriteSheet(sheetTitle: string, data: any[]) {
         await sheet.addRows(data);
       }
     } else if (data.length > 0) {
-      await doc.addSheet({ title: sheetTitle, headerValues: Object.keys(data[0]) });
-      const newSheet = doc.sheetsByTitle[sheetTitle];
+      await currentDoc.addSheet({ title: sheetTitle, headerValues: Object.keys(data[0]) });
+      const newSheet = currentDoc.sheetsByTitle[sheetTitle];
       await newSheet.addRows(data);
     }
     return true;
@@ -130,6 +154,10 @@ async function overwriteSheet(sheetTitle: string, data: any[]) {
 }
 
 // API Routes
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", env: checkEnvVars() ? "configured" : "missing" });
+});
+
 app.get("/api/data", async (req, res) => {
   if (!checkEnvVars()) {
     return res.status(500).json({ error: "Server configuration error: Missing environment variables" });
