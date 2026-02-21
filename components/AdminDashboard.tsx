@@ -158,16 +158,14 @@ const AdminDashboard: React.FC<Props> = ({
               ایکسیس حاصل کریں
             </button>
             
-            {/* No Password Login Button (Controlled by localStorage for now, can be updated via Admin Panel later) */}
-            {localStorage.getItem('showNoPassLogin') === 'true' && (
-              <button 
-                type="button" 
-                onClick={() => setIsAdminAuthenticated(true)}
-                className="w-full py-3 bg-yellow-100 text-yellow-700 rounded-2xl font-black hover:bg-yellow-200 transition-all text-xs uppercase tracking-widest"
-              >
-                بغیر پاسورڈ لاگ ان (No Password Login)
-              </button>
-            )}
+            {/* No Password Login Button - Always visible for now as requested */}
+            <button 
+              type="button" 
+              onClick={() => setIsAdminAuthenticated(true)}
+              className="w-full py-3 bg-yellow-100 text-yellow-700 rounded-2xl font-black hover:bg-yellow-200 transition-all text-xs uppercase tracking-widest"
+            >
+              بغیر پاسورڈ لاگ ان (No Password Login)
+            </button>
 
             <button type="button" onClick={onBack} className="w-full py-3 text-gray-400 font-bold text-xs uppercase hover:text-gray-600 transition-all">
               واپس جائیں (Back)

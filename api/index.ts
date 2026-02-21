@@ -295,11 +295,17 @@ app.post("/api/admin/login", (req, res) => {
   const { password } = req.body;
   // Ensure ADMIN_PASSWORD is set in environment variables
   const adminPassword = process.env.ADMIN_PASSWORD;
+  
   if (!adminPassword) {
     console.error("ADMIN_PASSWORD environment variable is not set.");
-    return res.status(500).json({ success: false, message: "Server configuration error" });
+    return res.status(500).json({ success: false, message: "Server configuration error: ADMIN_PASSWORD missing" });
   }
-  if (password === adminPassword) {
+
+  // Debug logging (safe)
+  console.log(`Login attempt: Received password length ${password?.length}, Expected password length ${adminPassword.length}`);
+  
+  // Trim both to avoid whitespace issues
+  if (password?.trim() === adminPassword.trim()) {
     res.json({ success: true });
   } else {
     res.status(401).json({ success: false, message: 'Invalid password' });
