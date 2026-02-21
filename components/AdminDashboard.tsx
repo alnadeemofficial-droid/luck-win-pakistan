@@ -112,12 +112,22 @@ const AdminDashboard: React.FC<Props> = ({
     setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, active: !a.active } : a));
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPassword === 'admin786') {
-      setIsAdminAuthenticated(true);
-    } else {
-      alert('غلط پاسورڈ! (Incorrect Password)');
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      if (response.ok) {
+        setIsAdminAuthenticated(true);
+      } else {
+        alert('غلط پاسورڈ! (Incorrect Password)');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
     }
   };
 
