@@ -663,35 +663,55 @@ const AdminDashboard: React.FC<Props> = ({
             
             <div className="flex items-center justify-between border-t pt-4">
               <span className="text-xs font-bold text-gray-700">گوگل شیٹ کنکشن ٹیسٹ (Test Google Sheet)</span>
-              <button 
-                onClick={async () => {
-                  if (confirm('کیا آپ واقعی 5 ٹیسٹ کارڈز شامل کرنا چاہتے ہیں؟ اس سے پرانے کارڈز ڈیلیٹ ہو سکتے ہیں۔')) {
+              <div className="flex gap-2">
+                <button 
+                  onClick={async () => {
                     try {
-                      const res = await fetch('/api/test-seed', { method: 'POST' });
-                      const text = await res.text(); // Get raw text first
-                      
-                      try {
-                        const data = JSON.parse(text); // Try to parse JSON
-                        if (data.success) {
-                          alert('کامیابی! 5 کارڈز شامل کر دیے گئے ہیں۔');
-                          window.location.reload();
-                        } else {
-                          alert('ناکامی: ' + data.message);
-                        }
-                      } catch (e) {
-                        // If JSON parse fails, show the raw text (likely HTML error)
-                        console.error("Server Error:", text);
-                        alert('سرور ایرر (Server Error):\n' + text.substring(0, 200)); // Show first 200 chars
+                      const res = await fetch('/api/debug-auth');
+                      const data = await res.json();
+                      if (data.success) {
+                        alert('کنکشن کامیاب! (Connection Successful)\nSheet Title: ' + data.sheetTitle);
+                      } else {
+                        alert('کنکشن فیل (Connection Failed):\n' + data.message + '\nError: ' + data.error);
                       }
                     } catch (err) {
-                      alert('ایرر: نیٹ ورک کنکشن فیل ہو گیا۔ (Network Error)');
+                      alert('ایرر: نیٹ ورک کنکشن فیل ہو گیا۔');
                     }
-                  }
-                }}
-                className="px-4 py-2 rounded-full text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all"
-              >
-                ٹیسٹ کریں (Add 5 Cards)
-              </button>
+                  }}
+                  className="px-3 py-2 rounded-full text-[10px] font-black uppercase bg-purple-600 text-white hover:bg-purple-700 transition-all"
+                >
+                  ڈیبگ (Debug)
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (confirm('کیا آپ واقعی 5 ٹیسٹ کارڈز شامل کرنا چاہتے ہیں؟ اس سے پرانے کارڈز ڈیلیٹ ہو سکتے ہیں۔')) {
+                      try {
+                        const res = await fetch('/api/test-seed', { method: 'POST' });
+                        const text = await res.text(); // Get raw text first
+                        
+                        try {
+                          const data = JSON.parse(text); // Try to parse JSON
+                          if (data.success) {
+                            alert('کامیابی! 5 کارڈز شامل کر دیے گئے ہیں۔');
+                            window.location.reload();
+                          } else {
+                            alert('ناکامی: ' + data.message);
+                          }
+                        } catch (e) {
+                          // If JSON parse fails, show the raw text (likely HTML error)
+                          console.error("Server Error:", text);
+                          alert('سرور ایرر (Server Error):\n' + text.substring(0, 200)); // Show first 200 chars
+                        }
+                      } catch (err) {
+                        alert('ایرر: نیٹ ورک کنکشن فیل ہو گیا۔ (Network Error)');
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 rounded-full text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all"
+                >
+                  ٹیسٹ کریں (Add 5 Cards)
+                </button>
+              </div>
             </div>
           </div>
 

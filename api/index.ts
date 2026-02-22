@@ -172,6 +172,61 @@ async function overwriteSheet(sheetTitle: string, data: any[]) {
   }
 }
 
+// Debug Auth Endpoint
+app.get("/api/debug-auth", async (req, res) => {
+  try {
+    const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const sheetId = process.env.GOOGLE_SHEET_ID;
+    let key = process.env.GOOGLE_PRIVATE_KEY;
+    
+    if (!email || !sheetId || !key) {
+      return res.status(500).json({ 
+        success: false, 
+        message: "Missing env vars", 
+        details: { 
+          hasEmail: !!email, 
+          hasSheetId: !!sheetId, 
+          hasKey: !!key 
+        } 
+      });
+    }
+
+    // Fix key formatting
+    key = key.replace(/\\n/g, '\n').replace(/"/g, '');
+    if (!key.startsWith('-----BEGIN PRIVATE KEY-----')) {
+       // Attempt to fix if headers are missing (common copy-paste error)
+       key = `-----BEGIN PRIVATE KEY-----\n${key}\n-----END PRIVATE KEY-----`;
+    }
+
+    console.log("Debug Auth: Attempting connection...");
+    
+    const serviceAccountAuth = new JWT({
+      email: email,
+      key: key,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
+    await doc.loadInfo();
+    
+    res.json({ 
+      success: true, 
+      message: "Connection Successful!", 
+      sheetTitle: doc.title,
+      sheetCount: doc.sheetCount 
+    });
+
+  } catch (error: any) {
+    console.error("Debug Auth Failed:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Connection Failed", 
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // API Routes
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", env: checkEnvVars() ? "configured" : "missing" });
