@@ -418,29 +418,20 @@ app.post("/api/admin/login", (req, res) => {
   }
 });
 
-// Vite middleware for development
-if (process.env.NODE_ENV !== "production") {
-  try {
-    const viteModule = await import("vite");
-    const vite = await viteModule.createServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } catch (e) {
-    console.error("Failed to load Vite middleware:", e);
-  }
-} else {
-  // Serve static files in production
+// Serve static files in production (Vercel handles this via rewrites, but good for fallback)
+if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../dist")));
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../dist", "index.html"));
   });
 }
 
-const PORT = 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Only listen if run directly (not imported as a module)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const PORT = 3000;
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
 
 export default app;
