@@ -4,6 +4,15 @@ import { JWT } from "google-auth-library";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+// Set default password if missing
+if (!process.env.ADMIN_PASSWORD) {
+  console.warn("ADMIN_PASSWORD missing, defaulting to '12345'");
+  process.env.ADMIN_PASSWORD = '12345';
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +26,6 @@ const checkEnvVars = () => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) missing.push('GOOGLE_SERVICE_ACCOUNT_EMAIL');
   if (!process.env.GOOGLE_PRIVATE_KEY) missing.push('GOOGLE_PRIVATE_KEY');
   if (!process.env.GOOGLE_SHEET_ID) missing.push('GOOGLE_SHEET_ID');
-  if (!process.env.ADMIN_PASSWORD) missing.push('ADMIN_PASSWORD');
   
   if (missing.length > 0) {
     console.error("Missing Environment Variables:", missing.join(", "));
