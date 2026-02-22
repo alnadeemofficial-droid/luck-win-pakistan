@@ -1,6 +1,5 @@
 import express from "express";
 import { GoogleSpreadsheet } from "google-spreadsheet";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
@@ -421,11 +420,16 @@ app.post("/api/admin/login", (req, res) => {
 
 // Vite middleware for development
 if (process.env.NODE_ENV !== "production") {
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: "spa",
-  });
-  app.use(vite.middlewares);
+  try {
+    const viteModule = await import("vite");
+    const vite = await viteModule.createServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } catch (e) {
+    console.error("Failed to load Vite middleware:", e);
+  }
 } else {
   // Serve static files in production
   app.use(express.static(path.join(__dirname, "../dist")));
