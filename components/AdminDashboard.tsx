@@ -668,11 +668,17 @@ const AdminDashboard: React.FC<Props> = ({
                   onClick={async () => {
                     try {
                       const res = await fetch('/api/debug-auth');
-                      const data = await res.json();
-                      if (data.success) {
-                        alert('کنکشن کامیاب! (Connection Successful)\nSheet Title: ' + data.sheetTitle);
-                      } else {
-                        alert('کنکشن فیل (Connection Failed):\n' + data.message + '\nError: ' + data.error);
+                      const text = await res.text();
+                      try {
+                        const data = JSON.parse(text);
+                        if (data.success) {
+                          alert('کنکشن کامیاب! (Connection Successful)\nSheet Title: ' + data.sheetTitle);
+                        } else {
+                          alert('کنکشن فیل (Connection Failed):\n' + data.message + '\nError: ' + data.error);
+                        }
+                      } catch (e) {
+                        console.error("Debug Auth Error:", text);
+                        alert('سرور ایرر (Server Error):\n' + text.substring(0, 300));
                       }
                     } catch (err) {
                       alert('ایرر: نیٹ ورک کنکشن فیل ہو گیا۔');
