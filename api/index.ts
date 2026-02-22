@@ -42,6 +42,14 @@ async function initGoogleSheets() {
   
   try {
     if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_SHEET_ID) {
+      console.log("Initializing Google Sheets with:", {
+        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        sheetId: process.env.GOOGLE_SHEET_ID,
+        keyLength: process.env.GOOGLE_PRIVATE_KEY.length,
+        hasNewlines: process.env.GOOGLE_PRIVATE_KEY.includes('\n'),
+        hasEscapedNewlines: process.env.GOOGLE_PRIVATE_KEY.includes('\\n')
+      });
+
       const serviceAccountAuth = new JWT({
         email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, ''),
@@ -50,6 +58,9 @@ async function initGoogleSheets() {
 
       doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
       return doc;
+    } else {
+      console.error("Missing Google Sheets credentials in initGoogleSheets");
+      return null;
     }
   } catch (err) {
     console.error("Failed to initialize Google Sheets:", err);
@@ -344,11 +355,13 @@ app.post("/api/admin/login", (req, res) => {
 
   // Debug logging (safe)
   console.log(`Login attempt: Received password length ${password?.length}, Expected password length ${adminPassword.length}`);
+  console.log(`Expected password (first 2 chars): ${adminPassword.substring(0, 2)}...`);
   
   // Trim both to avoid whitespace issues
   if (password?.trim() === adminPassword.trim()) {
     res.json({ success: true });
   } else {
+    console.warn("Login failed: Password mismatch");
     res.status(401).json({ success: false, message: 'Invalid password' });
   }
 });
