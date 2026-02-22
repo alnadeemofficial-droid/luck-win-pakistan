@@ -25,6 +25,7 @@ const AdminDashboard: React.FC<Props> = ({
   participants, updateStatus, tiers, setTiers, deleteTier, announcements, setAnnouncements, marqueeSpeed, setMarqueeSpeed, marqueePaused, setMarqueePaused, onBack, onStartDraw 
 }) => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [username, setUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'users' | 'tiers' | 'announcement' | 'stats' | 'completed' | 'awaiting_tid' | 'calculator'>('users');
   const [userFilter, setUserFilter] = useState<EntryStatus | 'ALL'>('ALL');
@@ -114,20 +115,36 @@ const AdminDashboard: React.FC<Props> = ({
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 👇👇👇 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE 👇👇👇
+    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzYAdcLarrUx4P-sAAoHWUI2jvQg7CxQO7n4c6M19XzfBVbtJdGDsOAkKmhoMXlTO7u/exec"; 
+    // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
+
     try {
-      const response = await fetch('/api/admin/login', {
+      // Sending POST request to Google Apps Script
+      const response = await fetch(GOOGLE_SCRIPT_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPassword })
+        body: JSON.stringify({ 
+            action: 'login',
+            username: username, 
+            password: adminPassword 
+        })
       });
-      if (response.ok) {
+
+      const result = await response.json();
+
+      if (result.result === 'success') {
+        // Login Successful
         setIsAdminAuthenticated(true);
+        // Note: In a real multi-page app, we would redirect: window.location.href = 'dashboard.html';
+        // Since this is a React SPA, we update state to show the dashboard.
       } else {
-        alert('غلط پاسورڈ! (Incorrect Password)');
+        // Login Failed
+        alert('Login Failed: ' + (result.message || 'Invalid username or password'));
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Login failed. Please try again.');
+      alert('Network error or API issue. Please check console.');
     }
   };
 
@@ -144,29 +161,30 @@ const AdminDashboard: React.FC<Props> = ({
           </div>
           <form onSubmit={handleAdminLogin} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">پاسورڈ درج کریں (Enter Password)</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">یوزر نیم (Username)</label>
               <input 
                 type="text" 
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="Username"
+                className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-green-500 rounded-2xl outline-none font-bold text-lg transition-all text-center"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">پاسورڈ (Password)</label>
+              <input 
+                type="password" 
                 value={adminPassword}
                 onChange={e => setAdminPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-green-500 rounded-2xl outline-none font-bold text-lg transition-all text-center"
-                autoFocus
               />
             </div>
             <button type="submit" className="w-full py-5 bg-green-600 text-white rounded-2xl font-black shadow-xl shadow-green-100 hover:bg-green-700 active:scale-95 transition-all uppercase tracking-widest text-sm">
               ایکسیس حاصل کریں
             </button>
             
-            {/* No Password Login Button - Always visible for now as requested */}
-            <button 
-              type="button" 
-              onClick={() => setIsAdminAuthenticated(true)}
-              className="w-full py-3 bg-yellow-100 text-yellow-700 rounded-2xl font-black hover:bg-yellow-200 transition-all text-xs uppercase tracking-widest"
-            >
-              بغیر پاسورڈ لاگ ان (No Password Login)
-            </button>
-
             <button type="button" onClick={onBack} className="w-full py-3 text-gray-400 font-bold text-xs uppercase hover:text-gray-600 transition-all">
               واپس جائیں (Back)
             </button>

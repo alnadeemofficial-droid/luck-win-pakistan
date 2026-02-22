@@ -1,5 +1,6 @@
 import express from "express";
 import { GoogleSpreadsheet } from "google-spreadsheet";
+import { JWT } from "google-auth-library";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
@@ -40,21 +41,19 @@ async function initGoogleSheets() {
   
   try {
     if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_SHEET_ID) {
-      console.log("Initializing Google Sheets (v4) with:", {
+      console.log("Initializing Google Sheets with JWT:", {
         email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         sheetId: process.env.GOOGLE_SHEET_ID,
         keyLength: process.env.GOOGLE_PRIVATE_KEY.length,
       });
 
-      const newDoc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID);
-      
-      // Use v4 auth method - casting to any to avoid TS issues with v4/v5 type mismatch
-      await (newDoc as any).useServiceAccountAuth({
-        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, ''),
+      const serviceAccountAuth = new JWT({
+        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, ''),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
       });
-      
-      doc = newDoc;
+
+      doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
       return doc;
     } else {
       console.error("Missing Google Sheets credentials in initGoogleSheets");
@@ -196,14 +195,15 @@ app.get("/api/debug-auth", async (req, res) => {
        key = `-----BEGIN PRIVATE KEY-----\n${key}\n-----END PRIVATE KEY-----`;
     }
 
-    console.log("Debug Auth: Attempting connection (v4)...");
+    console.log("Debug Auth: Attempting connection...");
     
-    const doc = new GoogleSpreadsheet(sheetId);
-    await (doc as any).useServiceAccountAuth({
-      client_email: email,
-      private_key: key,
+    const serviceAccountAuth = new JWT({
+      email: email,
+      key: key,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
+    const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
     await doc.loadInfo();
     
     res.json({ 
