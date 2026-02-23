@@ -244,7 +244,13 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUD1ijzm5yZ-
 // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
 async function callAppsScript(action: string, payload: any = {}) {
+  if (typeof fetch === 'undefined') {
+    console.error("CRITICAL: Global 'fetch' is not defined in this environment.");
+    return { status: 'error', message: "Server configuration error: fetch is missing" };
+  }
+
   try {
+    console.log(`Calling Apps Script: ${action}`);
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       headers: {
@@ -254,6 +260,8 @@ async function callAppsScript(action: string, payload: any = {}) {
     });
     
     const text = await response.text();
+    console.log(`Apps Script Response (${action}): ${text.substring(0, 100)}...`);
+
     try {
         if (!text) {
             console.warn(`Apps Script returned empty response for action: ${action}`);
@@ -261,7 +269,7 @@ async function callAppsScript(action: string, payload: any = {}) {
         }
         return JSON.parse(text);
     } catch (e) {
-        console.error(`Apps Script Invalid JSON (${action}):`, text.substring(0, 500)); // Log first 500 chars
+        console.error(`Apps Script Invalid JSON (${action}):`, text.substring(0, 500)); 
         return { status: 'error', message: 'Invalid JSON from Apps Script', raw: text.substring(0, 100) };
     }
   } catch (error) {
@@ -271,45 +279,78 @@ async function callAppsScript(action: string, payload: any = {}) {
 }
 
 app.get("/api/data", async (req, res) => {
-  const result = await callAppsScript('getData');
-  if (result.status === 'success') {
-    res.json(result.data);
-  } else {
-    // Fallback empty structure if fetch fails, to prevent frontend crash
-    // Also log the error so we can see it in server logs
-    console.error("Failed to fetch data from Apps Script:", result);
-    res.json({ participants: [], tiers: [], announcements: [] });
+  try {
+    const result = await callAppsScript('getData');
+    if (result.status === 'success') {
+      res.json(result.data);
+    } else {
+      console.error("Failed to fetch data from Apps Script:", result);
+      res.json({ participants: [], tiers: [], announcements: [] });
+    }
+  } catch (e) {
+    console.error("Error in /api/data:", e);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
 app.post("/api/participants", async (req, res) => {
-  const result = await callAppsScript('addParticipant', req.body);
-  res.json(result);
+  try {
+    const result = await callAppsScript('addParticipant', req.body);
+    res.json(result);
+  } catch (e) {
+    console.error("Error in /api/participants:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
 });
 
 app.post("/api/participants/status", async (req, res) => {
-  const result = await callAppsScript('updateParticipantStatus', req.body);
-  res.json(result);
+  try {
+    const result = await callAppsScript('updateParticipantStatus', req.body);
+    res.json(result);
+  } catch (e) {
+    console.error("Error in /api/participants/status:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
 });
 
 app.post("/api/participants/tid", async (req, res) => {
-  const result = await callAppsScript('updateParticipantTID', req.body);
-  res.json(result);
+  try {
+    const result = await callAppsScript('updateParticipantTID', req.body);
+    res.json(result);
+  } catch (e) {
+    console.error("Error in /api/participants/tid:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
 });
 
 app.post("/api/participants/winner", async (req, res) => {
-  const result = await callAppsScript('updateParticipantWinner', req.body);
-  res.json(result);
+  try {
+    const result = await callAppsScript('updateParticipantWinner', req.body);
+    res.json(result);
+  } catch (e) {
+    console.error("Error in /api/participants/winner:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
 });
 
 app.post("/api/tiers", async (req, res) => {
-  const result = await callAppsScript('saveTiers', { tiers: req.body });
-  res.json(result);
+  try {
+    const result = await callAppsScript('saveTiers', { tiers: req.body });
+    res.json(result);
+  } catch (e) {
+    console.error("Error in /api/tiers:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
 });
 
 app.post("/api/announcements", async (req, res) => {
-  const result = await callAppsScript('saveAnnouncements', { announcements: req.body });
-  res.json(result);
+  try {
+    const result = await callAppsScript('saveAnnouncements', { announcements: req.body });
+    res.json(result);
+  } catch (e) {
+    console.error("Error in /api/announcements:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
 });
 
 app.post("/api/test-seed", async (req, res) => {
