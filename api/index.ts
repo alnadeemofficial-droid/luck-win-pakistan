@@ -1,11 +1,14 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import axios from "axios";
+import cors from "cors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // Proxy requests to Google Apps Script
@@ -14,36 +17,43 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0l87VYtVT6M
 // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
 async function callAppsScript(action: string, payload: any = {}) {
-  if (typeof fetch === 'undefined') {
-    console.error("CRITICAL: Global 'fetch' is not defined in this environment.");
-    return { status: 'error', message: "Server configuration error: fetch is missing" };
-  }
-
   try {
     console.log(`Calling Apps Script: ${action}`);
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
+    const response = await axios.post(GOOGLE_SCRIPT_URL, { action, ...payload }, {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action, ...payload })
+      // Follow redirects automatically (default is 5)
+      maxRedirects: 5,
+      // Validate status: resolve only if status is 2xx
+      validateStatus: (status) => status >= 200 && status < 300,
     });
     
-    const text = await response.text();
-    console.log(`Apps Script Response (${action}): ${text.substring(0, 100)}...`);
+    const data = response.data;
+    console.log(`Apps Script Response (${action}):`, JSON.stringify(data).substring(0, 100) + "...");
 
-    try {
-        if (!text) {
-            console.warn(`Apps Script returned empty response for action: ${action}`);
-            return { status: 'error', message: 'Empty response from Apps Script' };
+    if (typeof data === 'string') {
+        // Sometimes Apps Script returns stringified JSON if ContentService is used incorrectly
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+             console.warn(`Apps Script returned string but not JSON for action: ${action}`);
+             // If it's HTML (e.g. error page), return error
+             if (data.trim().startsWith('<')) {
+                 return { status: 'error', message: 'Apps Script returned HTML (likely error page)', raw: data.substring(0, 100) };
+             }
+             return { status: 'error', message: 'Invalid response format', raw: data.substring(0, 100) };
         }
-        return JSON.parse(text);
-    } catch (e) {
-        console.error(`Apps Script Invalid JSON (${action}):`, text.substring(0, 500)); 
-        return { status: 'error', message: 'Invalid JSON from Apps Script', raw: text.substring(0, 100) };
     }
-  } catch (error) {
-    console.error(`Apps Script Network Error (${action}):`, error);
+    
+    return data;
+
+  } catch (error: any) {
+    console.error(`Apps Script Network Error (${action}):`, error.message);
+    if (error.response) {
+        console.error(`Apps Script Error Response (${action}):`, error.response.status, error.response.data);
+        return { status: 'error', message: `Apps Script Error: ${error.response.status}`, details: error.response.data };
+    }
     return { status: 'error', message: error.toString() };
   }
 }
