@@ -27,6 +27,7 @@ export interface Participant {
   secondaryPhone?: string;
   secondaryNetwork?: string;
   categoryId: string;
+  investAmount?: number; // Added field
   trackingId: string;
   status: EntryStatus;
   timestamp: number;

@@ -1,12 +1,7 @@
 
 import { InvestmentOption } from './types';
 
-export const INITIAL_INVESTMENT_TIERS: InvestmentOption[] = [
-  { id: '1', investAmount: 5, winAmount: 4000, membersNeeded: 1000, currentMembers: 120 },
-  { id: '2', investAmount: 10, winAmount: 8000, membersNeeded: 1200, currentMembers: 85 },
-  { id: '3', investAmount: 20, winAmount: 15000, membersNeeded: 1500, currentMembers: 40 },
-  { id: '4', investAmount: 50, winAmount: 40000, membersNeeded: 2000, currentMembers: 15 },
-];
+export const INITIAL_INVESTMENT_TIERS: InvestmentOption[] = [];
 
 export const NETWORKS = ['Jazz', 'Zong', 'Telenor', 'Ufone'];
 

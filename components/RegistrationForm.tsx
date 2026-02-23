@@ -67,6 +67,7 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
       secondaryPhone: formData.secondaryPhone,
       secondaryNetwork: formData.secondaryNetwork,
       categoryId: tier.id,
+      investAmount: tier.investAmount, // Add this line
       trackingId: skipTID ? '' : formData.trackingId,
       status: skipTID ? EntryStatus.AWAITING_TID : EntryStatus.PENDING,
       timestamp: Date.now()

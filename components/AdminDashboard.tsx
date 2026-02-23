@@ -64,11 +64,13 @@ const AdminDashboard: React.FC<Props> = ({
   const filteredParticipants = participants.filter(p => {
     const isAwaitingTid = p.status === EntryStatus.AWAITING_TID;
     const matchesFilter = userFilter === 'ALL' ? !isAwaitingTid : p.status === userFilter;
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.phone.includes(search) || p.trackingId.includes(search);
+    const matchesSearch = String(p.name || '').toLowerCase().includes(search.toLowerCase()) || String(p.phone || '').includes(search) || String(p.trackingId || '').includes(search);
     return matchesFilter && matchesSearch;
   });
 
-  const totalRevenue = participants.filter(p => p.status === EntryStatus.APPROVED).reduce((acc, p) => acc + (tiers.find(t => t.id === p.categoryId)?.investAmount || 0), 0);
+  const totalRevenue = participants
+    .filter(p => p.status === EntryStatus.APPROVED)
+    .reduce((acc, p) => acc + (p.investAmount || tiers.find(t => t.id === p.categoryId)?.investAmount || 0), 0);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
     const file = e.target.files?.[0];
@@ -117,7 +119,7 @@ const AdminDashboard: React.FC<Props> = ({
     e.preventDefault();
     
     // 👇👇👇 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE 👇👇👇
-    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwLbTK6f1ShsNKXs-fyJtgwC0MltBpys1rCNk57e8OeILoC-YKZC_NjaePrf1BPztUp/exec"; 
+    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbxzS2MeQXiYC8A940dXNtzL5ELMV7pcAX4s7pd6QBPDCFwWc7LQcx73SVa1zRv9naE/exec"; 
     // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
     try {
@@ -427,7 +429,7 @@ const AdminDashboard: React.FC<Props> = ({
                 <tbody className="divide-y divide-gray-100">
                   {participants
                     .filter(p => p.status === EntryStatus.AWAITING_TID)
-                    .filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.phone.includes(search))
+                    .filter(p => String(p.name || '').toLowerCase().includes(search.toLowerCase()) || String(p.phone || '').includes(search))
                     .map((p, i) => (
                     <tr key={`${p.id}-${i}`} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4">
@@ -514,7 +516,7 @@ const AdminDashboard: React.FC<Props> = ({
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="font-black text-gray-800">Rs. {tiers.find(t => t.id === p.categoryId)?.investAmount || '??'}</div>
+                        <div className="font-black text-gray-800">Rs. {p.investAmount || tiers.find(t => t.id === p.categoryId)?.investAmount || '??'}</div>
                         <div className="text-gray-400 font-mono text-[10px]">{p.trackingId}</div>
                       </td>
                       <td className="p-4">
@@ -710,35 +712,6 @@ const AdminDashboard: React.FC<Props> = ({
                   className="px-3 py-2 rounded-full text-[10px] font-black uppercase bg-purple-600 text-white hover:bg-purple-700 transition-all"
                 >
                   ڈیبگ (Debug)
-                </button>
-                <button 
-                  onClick={async () => {
-                    if (confirm('کیا آپ واقعی 5 ٹیسٹ کارڈز شامل کرنا چاہتے ہیں؟ اس سے پرانے کارڈز ڈیلیٹ ہو سکتے ہیں۔')) {
-                      try {
-                        const res = await fetch('/api/test-seed', { method: 'POST' });
-                        const text = await res.text(); // Get raw text first
-                        
-                        try {
-                          const data = JSON.parse(text); // Try to parse JSON
-                          if (data.success) {
-                            alert('کامیابی! 5 کارڈز شامل کر دیے گئے ہیں۔');
-                            window.location.reload();
-                          } else {
-                            alert('ناکامی: ' + data.message);
-                          }
-                        } catch (e) {
-                          // If JSON parse fails, show the raw text (likely HTML error)
-                          console.error("Server Error:", text);
-                          alert('سرور ایرر (Server Error):\n' + text.substring(0, 200)); // Show first 200 chars
-                        }
-                      } catch (err) {
-                        alert('ایرر: نیٹ ورک کنکشن فیل ہو گیا۔ (Network Error)');
-                      }
-                    }
-                  }}
-                  className="px-4 py-2 rounded-full text-[10px] font-black uppercase bg-blue-600 text-white hover:bg-blue-700 transition-all"
-                >
-                  ٹیسٹ کریں (Add 5 Cards)
                 </button>
               </div>
             </div>

@@ -48,6 +48,8 @@ const App: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
 
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -71,6 +73,8 @@ const App: React.FC = () => {
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Network error: Could not connect to server.');
+      } finally {
+        setIsDataLoaded(true);
       }
     };
     fetchData();
@@ -91,6 +95,8 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!isDataLoaded) return;
+
     const saveData = async () => {
       try {
         await fetch('/api/tiers', {
@@ -107,14 +113,18 @@ const App: React.FC = () => {
         console.error('Error saving data:', error);
       }
     };
-    if (tiers.length > 0 || announcements.length > 0) {
-      saveData();
-    }
     
+    // Debounce save to prevent too many writes
+    const timeoutId = setTimeout(() => {
+        saveData();
+    }, 1000);
+
     localStorage.setItem('luckwin_lang', lang);
     localStorage.setItem('luckwin_speed', marqueeSpeed.toString());
     localStorage.setItem('luckwin_paused', marqueePaused.toString());
-  }, [tiers, announcements, lang, marqueeSpeed, marqueePaused]);
+
+    return () => clearTimeout(timeoutId);
+  }, [tiers, announcements, lang, marqueeSpeed, marqueePaused, isDataLoaded]);
 
   const handleRegister = async (newParticipant: Participant) => {
     const existingUser = participants.find(p => p.phone === newParticipant.phone && p.name === newParticipant.name);
