@@ -118,21 +118,14 @@ const AdminDashboard: React.FC<Props> = ({
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 👇👇👇 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE 👇👇👇
-    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycby0l87VYtVT6MHQ7rpFVsEb5E4a7CuvSUZEmbYnNsqw9_L3MbeSDkTKqxexV2OWAAlX/exec"; 
-    // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
-
     try {
-      console.log("Sending login request to:", GOOGLE_SCRIPT_API_URL);
-      console.log("Payload:", { action: 'login', username: username.trim(), password: adminPassword.trim() });
-
-      // Sending POST request to Google Apps Script
-      // Note: We use 'no-cors' mode if we don't need the response, but here we DO need it.
-      // Google Apps Script Web App must be deployed as "Execute as: Me" and "Who has access: Anyone".
-      const response = await fetch(GOOGLE_SCRIPT_API_URL, {
+      // Use the server proxy instead of direct URL
+      const response = await fetch('/api/admin/login', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ 
-            action: 'login',
             username: username.trim(), 
             password: adminPassword.trim() 
         })
@@ -142,12 +135,12 @@ const AdminDashboard: React.FC<Props> = ({
       console.log("Server Response:", result);
 
       // Check for various success indicators
-      if (result.result === 'success' || result.status === 'success' || result.success === true) {
+      if (result.status === 'success' || result.success === true) {
         // Login Successful
         setIsAdminAuthenticated(true);
       } else {
         // Login Failed
-        alert('Login Failed (Server Response): ' + (result.message || result.error || 'Invalid credentials'));
+        alert('Login Failed: ' + (result.message || result.error || 'Invalid credentials'));
       }
     } catch (error) {
       console.error('Login error:', error);
