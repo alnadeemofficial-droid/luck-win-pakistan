@@ -54,7 +54,7 @@ const ResultPortal: React.FC<Props> = ({ participants, tiers, lang, onBack }) =>
       </div>
 
       {!result ? (
-        <div className="bg-white p-8 rounded-[40px] shadow-2xl border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-white p-8 rounded-[40px] shadow-2xl border border-gray-100">
           <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Key className="w-10 h-10 text-blue-600" />
           </div>
@@ -78,17 +78,17 @@ const ResultPortal: React.FC<Props> = ({ participants, tiers, lang, onBack }) =>
           </form>
         </div>
       ) : (
-        <div className="animate-in fade-in zoom-in duration-500">
+        <div className="">
           {result.status === 'WINNER' && (
             <div className="space-y-4">
               <div className="bg-gradient-to-br from-yellow-400 to-orange-600 p-1 rounded-[40px] shadow-2xl">
                 <div className="bg-white p-8 rounded-[38px] text-center space-y-6">
                   <div className="relative">
-                    <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto animate-bounce">
+                    <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
                       <Trophy className="w-14 h-14 text-yellow-600" />
                     </div>
-                    <Sparkles className="absolute top-0 right-1/4 w-8 h-8 text-yellow-500 animate-pulse" />
-                    <Sparkles className="absolute bottom-0 left-1/4 w-6 h-6 text-orange-500 animate-pulse" />
+                    <Sparkles className="absolute top-0 right-1/4 w-8 h-8 text-yellow-500" />
+                    <Sparkles className="absolute bottom-0 left-1/4 w-6 h-6 text-orange-500" />
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-4xl font-black nastaliq text-orange-600 leading-tight">{lang === 'ur' ? 'مبارک ہو!' : 'Congratulations!'}</h3>

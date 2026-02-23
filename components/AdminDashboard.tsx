@@ -156,7 +156,7 @@ const AdminDashboard: React.FC<Props> = ({
   if (!isAdminAuthenticated) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-[40px] border shadow-2xl w-full max-w-md space-y-6 animate-in zoom-in duration-300">
+        <div className="bg-white p-8 rounded-[40px] border shadow-2xl w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <ShieldCheck className="w-10 h-10 text-green-600" />
@@ -216,7 +216,7 @@ const AdminDashboard: React.FC<Props> = ({
 
       {editingTierId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl">
             <div className="bg-blue-600 p-5 text-white flex justify-between items-center">
               <h3 className="font-black text-lg">ایڈٹ کارڈ (Edit Card)</h3>
               <button onClick={() => setEditingTierId(null)} className="p-1 hover:bg-white/20 rounded-full"><X className="w-6 h-6" /></button>
@@ -308,7 +308,7 @@ const AdminDashboard: React.FC<Props> = ({
       )}
 
       {activeTab === 'calculator' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-6">
           <div className="bg-white p-8 rounded-[40px] border shadow-xl space-y-8">
             <div className="flex items-center gap-4 border-b pb-4">
               <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><Trophy className="w-8 h-8" /></div>

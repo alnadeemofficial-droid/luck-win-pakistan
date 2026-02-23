@@ -68,7 +68,7 @@ const StatusChecker: React.FC<Props> = ({ participants, tiers, lang, onBack, upd
       </div>
 
       {!hasSearched ? (
-        <div className="bg-white p-6 rounded-[32px] shadow-xl border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-white p-6 rounded-[32px] shadow-xl border border-gray-100">
           <form onSubmit={handleSearch} className="space-y-5">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t.nameLabel}</label>
@@ -116,7 +116,7 @@ const StatusChecker: React.FC<Props> = ({ participants, tiers, lang, onBack, upd
           </form>
         </div>
       ) : (
-        <div className="space-y-4 animate-in fade-in zoom-in duration-500">
+        <div className="space-y-4">
           {userEntries ? (
             <div className="space-y-6">
               <div className="bg-green-600 text-white p-6 rounded-[32px] shadow-lg relative overflow-hidden">

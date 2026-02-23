@@ -93,7 +93,7 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-3 overflow-y-auto">
-      <div className={`bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl my-auto animate-in zoom-in duration-300 ${lang === 'ur' ? 'rtl font-urdu' : 'ltr font-sans'}`} dir={lang === 'ur' ? 'rtl' : 'ltr'}>
+      <div className={`bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl my-auto ${lang === 'ur' ? 'rtl font-urdu' : 'ltr font-sans'}`} dir={lang === 'ur' ? 'rtl' : 'ltr'}>
         <div 
           className={`p-5 text-white flex justify-between items-center ${tier.color?.startsWith('#') ? '' : `bg-gradient-to-r ${tier.color || 'from-green-800 to-green-600'}`}`}
           style={tier.color?.startsWith('#') ? { background: `linear-gradient(to right, ${tier.color}, ${tier.color}dd)` } : {}}
@@ -220,11 +220,11 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
           {step === 4 && (
             <div className="py-6 text-center space-y-6">
               <div className="relative">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto animate-bounce">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-12 h-12 text-green-600" />
                 </div>
-                <Sparkles className="absolute top-0 right-1/4 w-6 h-6 text-yellow-400 animate-pulse" />
-                <Sparkles className="absolute bottom-0 left-1/4 w-4 h-4 text-yellow-400 animate-pulse" />
+                <Sparkles className="absolute top-0 right-1/4 w-6 h-6 text-yellow-400" />
+                <Sparkles className="absolute bottom-0 left-1/4 w-4 h-4 text-yellow-400" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-black nastaliq text-green-800 leading-tight">{t.welcomeTitle}</h3>

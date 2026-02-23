@@ -239,15 +239,21 @@ app.get("/api/health", (req, res) => {
 });
 
 // Proxy requests to Google Apps Script
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLbTK6f1ShsNKXs-fyJtgwC0MltBpys1rCNk57e8OeILoC-YKZC_NjaePrf1BPztUp/exec";
+// 👇👇👇 REPLACE THIS WITH YOUR NEW DEPLOYED WEB APP URL 👇👇👇
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLbTK6f1ShsNKXs-fyJtgwC0MltBpys1rCNk57e8OeILoC-YKZC_NjaePrf1BPztUp/exec"; 
+// 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
-async function callAppsScript(action: string, payload: any) {
+async function callAppsScript(action: string, payload: any = {}) {
   try {
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ action, ...payload })
     });
-    return await response.json();
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error(`Apps Script Error (${action}):`, error);
     return { status: 'error', message: error.toString() };
@@ -255,125 +261,43 @@ async function callAppsScript(action: string, payload: any) {
 }
 
 app.get("/api/data", async (req, res) => {
-  // For read operations, we can still use the direct Sheets API for speed if configured,
-  // OR we can use the Apps Script if we add a 'getData' action.
-  // The user's Apps Script has 'getStats' but not full data.
-  // However, the user said "Cards are not being added", which is a write operation.
-  // Let's keep the read operations as is (using direct Sheets API) for now to avoid breaking the frontend data loading,
-  // UNLESS the user wants EVERYTHING through Apps Script.
-  // The user said "I have to use Google Sheets as a complete backend and make a secure API from Google Apps Script."
-  // This implies we should probably use Apps Script for everything, but the provided Apps Script code
-  // DOES NOT have a 'getData' function to return all data.
-  // So we MUST keep using the direct Sheets API for reading for now, or the app will be empty.
-  
-  if (!checkEnvVars()) {
-    return res.status(500).json({ error: "Server configuration error: Missing environment variables" });
+  const result = await callAppsScript('getData');
+  if (result.status === 'success') {
+    res.json(result.data);
+  } else {
+    // Fallback empty structure if fetch fails, to prevent frontend crash
+    res.json({ participants: [], tiers: [], announcements: [] });
   }
-  const participants = await getSheetData('Participants');
-  const tiers = await getSheetData('Tiers');
-  const announcements = await getSheetData('Announcements');
-  
-  // Parse numeric/boolean fields
-  const parsedParticipants = participants.map((p: any) => ({
-    ...p,
-    timestamp: Number(p.timestamp),
-    isWinner: p.isWinner === 'TRUE',
-    winAmount: p.winAmount ? Number(p.winAmount) : undefined,
-    winningDate: p.winningDate ? Number(p.winningDate) : undefined
-  }));
-
-  const parsedTiers = tiers.map((t: any) => ({
-    ...t,
-    investAmount: Number(t.investAmount),
-    winAmount: Number(t.winAmount),
-    membersNeeded: Number(t.membersNeeded),
-    currentMembers: Number(t.currentMembers),
-    isExpired: t.isExpired === 'TRUE',
-    drawCompleted: t.drawCompleted === 'TRUE'
-  }));
-
-  const parsedAnnouncements = announcements.map((a: any) => ({
-    ...a,
-    active: a.active === 'TRUE'
-  }));
-
-  res.json({ participants: parsedParticipants, tiers: parsedTiers, announcements: parsedAnnouncements });
 });
 
 app.post("/api/participants", async (req, res) => {
-  // Use Apps Script for adding participants
   const result = await callAppsScript('addParticipant', req.body);
-  if (result.status === 'success') {
-    res.json(req.body);
-  } else {
-    console.error("Add Participant Failed:", result);
-    res.status(500).json(result);
-  }
+  res.json(result);
 });
 
 app.post("/api/participants/status", async (req, res) => {
-  // We need to add 'updateParticipantStatus' to Apps Script or use direct API.
-  // Since we can't update deployed Apps Script easily, and the user asked for NEW code,
-  // we will assume the user will update the Apps Script.
-  // For now, let's use direct API for updates to ensure it works immediately if env vars are set.
-  const { id, status } = req.body;
-  await updateRow('Participants', id, { status });
-  res.json({ success: true });
+  const result = await callAppsScript('updateParticipantStatus', req.body);
+  res.json(result);
 });
 
 app.post("/api/participants/tid", async (req, res) => {
-  const { id, trackingId, status } = req.body;
-  await updateRow('Participants', id, { trackingId, status });
-  res.json({ success: true });
+  const result = await callAppsScript('updateParticipantTID', req.body);
+  res.json(result);
 });
 
 app.post("/api/participants/winner", async (req, res) => {
-  const { id, winAmount, winningDate } = req.body;
-  await updateRow('Participants', id, { isWinner: 'TRUE', winAmount: winAmount.toString(), winningDate: winningDate.toString() });
-  res.json({ success: true });
+  const result = await callAppsScript('updateParticipantWinner', req.body);
+  res.json(result);
 });
 
 app.post("/api/tiers", async (req, res) => {
-  // The user specifically mentioned "Cards are not being added".
-  // The frontend sends the FULL list of tiers to this endpoint.
-  // We should use the Apps Script to overwrite/sync tiers if possible,
-  // OR just use the direct API which we know works for bulk overwrites.
-  
-  // The error "Internal Server Error" suggests the direct API is failing, likely due to auth or data format.
-  // Let's try to fix the direct API first as it's more reliable for bulk data.
-  
-  const tiers = req.body;
-  const sheetData = tiers.map((t: any) => ({
-    ...t,
-    investAmount: t.investAmount.toString(),
-    winAmount: t.winAmount.toString(),
-    membersNeeded: t.membersNeeded.toString(),
-    currentMembers: t.currentMembers.toString(),
-    isExpired: t.isExpired ? 'TRUE' : 'FALSE',
-    drawCompleted: t.drawCompleted ? 'TRUE' : 'FALSE'
-  }));
-  
-  // Use direct API for now as it handles bulk overwrite better than the current Apps Script
-  const success = await overwriteSheet('Tiers', sheetData);
-  if (success) {
-    res.json({ success: true });
-  } else {
-    res.status(500).json({ success: false, message: "Failed to save tiers to Google Sheets" });
-  }
+  const result = await callAppsScript('saveTiers', { tiers: req.body });
+  res.json(result);
 });
 
 app.post("/api/announcements", async (req, res) => {
-  const announcements = req.body;
-  const sheetData = announcements.map((a: any) => ({
-    ...a,
-    active: a.active ? 'TRUE' : 'FALSE'
-  }));
-  const success = await overwriteSheet('Announcements', sheetData);
-  if (success) {
-    res.json({ success: true });
-  } else {
-    res.status(500).json({ success: false, message: "Failed to save announcements" });
-  }
+  const result = await callAppsScript('saveAnnouncements', { announcements: req.body });
+  res.json(result);
 });
 
 app.post("/api/test-seed", async (req, res) => {

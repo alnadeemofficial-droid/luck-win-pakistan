@@ -230,13 +230,13 @@ const App: React.FC = () => {
             {marqueeText && (
               <div className="overflow-hidden bg-gradient-to-r from-yellow-500 to-orange-500 p-0.5 rounded-xl shadow-md">
                 <div className="bg-yellow-50 px-4 py-2.5 rounded-[10px] flex items-center gap-3">
-                  <Bell className="w-5 h-5 text-yellow-600 shrink-0 animate-bounce" />
+                  <Bell className="w-5 h-5 text-yellow-600 shrink-0" />
                   <div className="flex-grow overflow-hidden relative h-6">
                      <p 
-                        className={`absolute whitespace-nowrap text-sm font-black text-yellow-900 ${marqueePaused ? '' : 'animate-marquee'}`}
+                        className="absolute whitespace-nowrap text-sm font-black text-yellow-900"
                         style={{ 
-                          animationDuration: `${marqueeSpeed}s`,
-                          right: marqueePaused ? '0' : 'auto'
+                          left: '50%',
+                          transform: 'translateX(-50%)'
                         }}
                       >
                        {marqueeText}
@@ -246,7 +246,7 @@ const App: React.FC = () => {
               </div>
             )}
 
-            <div className="text-center space-y-4 animate-in fade-in duration-1000">
+            <div className="text-center space-y-4">
               <h2 className="text-2xl md:text-5xl font-black text-gray-900 nastaliq leading-snug">
                 {lang === 'ur' ? 'اپنی قسمت بدلنے کا وقت آ گیا ہے!' : 'Time to change your luck!'}
               </h2>
@@ -382,14 +382,14 @@ const App: React.FC = () => {
 
         {selectedWinner && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white w-full max-w-md rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in duration-300 relative">
+            <div className="bg-white w-full max-w-md rounded-[40px] overflow-hidden shadow-2xl relative">
               <button onClick={() => setSelectedWinner(null)} className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-all z-10">
                 <X className="w-5 h-5 text-gray-600" />
               </button>
               
               <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-10 text-center text-white space-y-4">
                 <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                  <Trophy className="w-12 h-12 text-white animate-bounce" />
+                  <Trophy className="w-12 h-12 text-white" />
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-4xl font-black nastaliq leading-tight">{lang === 'ur' ? 'خوش نصیب فاتح' : 'Lucky Winner'}</h3>
@@ -481,7 +481,7 @@ const App: React.FC = () => {
       </main>
 
       {showUndo && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-bottom-10">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60]">
           <div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4">
             <span className="text-sm font-bold">Card removed.</span>
             <button onClick={undoDelete} className="text-yellow-400 font-black text-sm uppercase hover:underline">Undo</button>
@@ -515,8 +515,7 @@ const App: React.FC = () => {
       )}
       
       <style>{`
-        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        .animate-marquee { animation: marquee linear infinite; }
+        /* Marquee animation removed */
       `}</style>
     </div>
   );

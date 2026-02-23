@@ -65,7 +65,7 @@ const LuckyDraw: React.FC<Props> = ({ tier, participants, lang, onBack, onSaveWi
   const currentDate = new Date().toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8 space-y-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <button onClick={onBack} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all">
@@ -127,16 +127,16 @@ const LuckyDraw: React.FC<Props> = ({ tier, participants, lang, onBack, onSaveWi
             >
               {isSpinning ? <><Sparkles className="w-6 h-6 animate-spin" /> Spinning...</> : drawLocked ? <><Trophy className="w-6 h-6" /> Draw Completed</> : <><Play className="w-6 h-6" /> Start Draw</>}
             </button>
-            {drawLocked && !isSpinning && <p className="text-xs text-red-400 font-bold uppercase tracking-widest animate-pulse">This draw is locked (One-time only)</p>}
+            {drawLocked && !isSpinning && <p className="text-xs text-red-400 font-bold uppercase tracking-widest">This draw is locked (One-time only)</p>}
           </div>
 
           {/* Winner Details Section */}
           <div className="space-y-6">
             {winner && showWinnerDetails ? (
-              <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 space-y-6 animate-in zoom-in duration-500 shadow-2xl">
+              <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 space-y-6 shadow-2xl">
                 <div className="text-center space-y-2">
                   <div className="w-20 h-20 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Trophy className="w-10 h-10 text-yellow-400 animate-bounce" />
+                    <Trophy className="w-10 h-10 text-yellow-400" />
                   </div>
                   <h3 className="text-4xl font-black nastaliq text-yellow-400">مبارک ہو! فاتح مل گیا</h3>
                   <p className="text-gray-400 font-bold uppercase tracking-widest">Winner Found!</p>
