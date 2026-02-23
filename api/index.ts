@@ -10,7 +10,7 @@ app.use(express.json());
 
 // Proxy requests to Google Apps Script
 // 👇👇👇 REPLACE THIS WITH YOUR NEW DEPLOYED WEB APP URL 👇👇👇
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyLob_h7tWH48JAtD88R4wmzNUF_mctyKQOtt2P19UAdyg0l6hRS-HzaSX9jQqBRGq_/exec"; 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0l87VYtVT6MHQ7rpFVsEb5E4a7CuvSUZEmbYnNsqw9_L3MbeSDkTKqxexV2OWAAlX/exec"; 
 // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
 async function callAppsScript(action: string, payload: any = {}) {
