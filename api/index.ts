@@ -240,7 +240,7 @@ app.get("/api/health", (req, res) => {
 
 // Proxy requests to Google Apps Script
 // 👇👇👇 REPLACE THIS WITH YOUR NEW DEPLOYED WEB APP URL 👇👇👇
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUD1ijzm5yZ-OM_42JsuDoONPbj6CsJU3NwDP1JFZuCbKoI0dlog422Cj7YHeVnuE/exec"; 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyLob_h7tWH48JAtD88R4wmzNUF_mctyKQOtt2P19UAdyg0l6hRS-HzaSX9jQqBRGq_/exec"; 
 // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
 async function callAppsScript(action: string, payload: any = {}) {
@@ -285,11 +285,16 @@ app.get("/api/data", async (req, res) => {
       res.json(result.data);
     } else {
       console.error("Failed to fetch data from Apps Script:", result);
-      res.json({ participants: [], tiers: [], announcements: [] });
+      // Return the error so the frontend can show it
+      res.status(502).json({ 
+        error: "Failed to fetch data from Google Sheet", 
+        details: result.message,
+        raw: result.raw 
+      });
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error("Error in /api/data:", e);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error", details: e.message });
   }
 });
 

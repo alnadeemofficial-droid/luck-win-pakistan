@@ -46,6 +46,8 @@ const App: React.FC = () => {
 
   const t = TRANSLATIONS[lang];
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -56,14 +58,19 @@ const App: React.FC = () => {
             if (data.participants && data.participants.length > 0) setParticipants(data.participants);
             if (data.tiers && data.tiers.length > 0) setTiers(data.tiers);
             if (data.announcements && data.announcements.length > 0) setAnnouncements(data.announcements);
+            setError(null);
           } catch (jsonError) {
             console.error('Error parsing JSON data:', jsonError);
+            setError('Failed to parse data from server.');
           }
         } else {
-            console.error('API response not OK:', response.status);
+            const errData = await response.json().catch(() => ({}));
+            console.error('API response not OK:', response.status, errData);
+            setError(`Failed to load data: ${errData.details || response.statusText || 'Unknown Error'}`);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setError('Network error: Could not connect to server.');
       }
     };
     fetchData();
@@ -229,6 +236,12 @@ const App: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {error && (
+        <div className="bg-red-500 text-white text-center p-2 text-sm font-bold">
+          ⚠️ {error}
+        </div>
+      )}
 
       <main className="flex-grow max-w-7xl mx-auto w-full px-2 md:px-4 py-4 md:py-6">
         {activeTab === 'home' && (
