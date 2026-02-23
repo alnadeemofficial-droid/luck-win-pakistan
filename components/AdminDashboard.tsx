@@ -117,7 +117,7 @@ const AdminDashboard: React.FC<Props> = ({
     e.preventDefault();
     
     // 👇👇👇 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE 👇👇👇
-    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwgAFg3hI4MOewzPmACzGrpRU7-IyKePRyFrhWiq4ccCJ5fDdgOLlwNjjn_ZZ0gtfYe/exec"; 
+    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwLbTK6f1ShsNKXs-fyJtgwC0MltBpys1rCNk57e8OeILoC-YKZC_NjaePrf1BPztUp/exec"; 
     // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
     try {
