@@ -1,9 +1,5 @@
-import express from "express";
 import { createServer as createViteServer } from "vite";
-import app from "./api/index.js"; // Import the Express app
-import dotenv from "dotenv";
-
-dotenv.config();
+import app from "./api/index"; // Import the Express app
 
 async function startServer() {
   const vite = await createViteServer({
@@ -21,6 +17,10 @@ async function startServer() {
   app.use(vite.middlewares);
 
   const PORT = 3000;
+  // Note: app.listen is already called in api/index.ts if run directly.
+  // But here we are importing it.
+  // If api/index.ts has `if (import.meta.url === ...)` block, it won't listen.
+  // So we listen here.
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Local Dev Server running on http://localhost:${PORT}`);
   });
