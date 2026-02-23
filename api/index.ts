@@ -22,6 +22,7 @@ async function callAppsScript(action: string, payload: any = {}) {
     const response = await axios.post(GOOGLE_SCRIPT_URL, { action, ...payload }, {
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; GoogleAppsScriptProxy/1.0)',
       },
       // Follow redirects automatically (default is 5)
       maxRedirects: 5,
