@@ -428,8 +428,8 @@ const AdminDashboard: React.FC<Props> = ({
                   {participants
                     .filter(p => p.status === EntryStatus.AWAITING_TID)
                     .filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.phone.includes(search))
-                    .map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                    .map((p, i) => (
+                    <tr key={`${p.id}-${i}`} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4">
                         <div className="font-black text-gray-900 text-sm">{p.name}</div>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -453,7 +453,7 @@ const AdminDashboard: React.FC<Props> = ({
                     </tr>
                   ))}
                   {participants.filter(p => p.status === EntryStatus.AWAITING_TID).length === 0 && (
-                    <tr>
+                    <tr key="no-data">
                       <td colSpan={4} className="p-10 text-center text-gray-400 font-bold italic">کوئی ایسی درخواست نہیں ملی</td>
                     </tr>
                   )}
@@ -502,8 +502,8 @@ const AdminDashboard: React.FC<Props> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredParticipants.map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                  {filteredParticipants.map((p, i) => (
+                    <tr key={`${p.id}-${i}`} className="hover:bg-gray-50 transition-colors">
                       <td className="p-4">
                         <div className="font-black text-gray-900 text-sm">{p.name}</div>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -530,7 +530,7 @@ const AdminDashboard: React.FC<Props> = ({
                     </tr>
                   ))}
                   {filteredParticipants.length === 0 && (
-                    <tr>
+                    <tr key="no-data">
                       <td colSpan={4} className="p-10 text-center text-gray-400 font-bold italic">کوئی درخواست نہیں ملی</td>
                     </tr>
                   )}
