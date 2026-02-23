@@ -4,6 +4,7 @@ import {
   Users, CheckCircle, XCircle, Search, Plus, Trash2, QrCode, Image as ImageIcon, BellPlus, Edit3, Save, X, FastForward, Play, Pause, ArrowLeft, Phone, Network, Trophy, TrendingUp, ShieldCheck
 } from 'lucide-react';
 import { Participant, EntryStatus, Announcement, InvestmentOption } from '../types';
+import { GOOGLE_SCRIPT_URL } from '../config';
 
 interface Props {
   participants: Participant[];
@@ -119,13 +120,11 @@ const AdminDashboard: React.FC<Props> = ({
     e.preventDefault();
     
     try {
-      // Use the server proxy instead of direct URL
-      const response = await fetch('/api/admin/login', {
+      // Use direct Google Apps Script URL
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ 
+            action: 'login',
             username: username.trim(), 
             password: adminPassword.trim() 
         })

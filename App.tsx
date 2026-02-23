@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Participant, EntryStatus, InvestmentOption, Announcement, Language } from './types';
 import { INITIAL_INVESTMENT_TIERS, TRANSLATIONS } from './constants';
+import { GOOGLE_SCRIPT_URL } from './config';
 import AdminDashboard from './components/AdminDashboard';
 import RegistrationForm from './components/RegistrationForm';
 import StatusChecker from './components/StatusChecker';
@@ -50,25 +51,39 @@ const App: React.FC = () => {
 
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+  // ... inside App component ...
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/data');
+        // Use direct Google Apps Script URL
+        // Note: Using POST with action: 'getData' is safer for avoiding caching issues
+        // and consistent with other actions.
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'getData' })
+        });
+        
         if (response.ok) {
           try {
             const data = await response.json();
-            if (data.participants && data.participants.length > 0) setParticipants(data.participants);
-            if (data.tiers && data.tiers.length > 0) setTiers(data.tiers);
-            if (data.announcements && data.announcements.length > 0) setAnnouncements(data.announcements);
-            setError(null);
+            if (data.status === 'success' && data.data) {
+                const { participants, tiers, announcements } = data.data;
+                if (participants && participants.length > 0) setParticipants(participants);
+                if (tiers && tiers.length > 0) setTiers(tiers);
+                if (announcements && announcements.length > 0) setAnnouncements(announcements);
+                setError(null);
+            } else {
+                console.error('API Error:', data);
+                setError(data.message || 'Failed to load data');
+            }
           } catch (jsonError) {
             console.error('Error parsing JSON data:', jsonError);
             setError('Failed to parse data from server.');
           }
         } else {
-            const errData = await response.json().catch(() => ({}));
-            console.error('API response not OK:', response.status, errData);
-            setError(`Failed to load data: ${errData.details || response.statusText || 'Unknown Error'}`);
+            console.error('API response not OK:', response.status);
+            setError(`Failed to load data: ${response.statusText || 'Unknown Error'}`);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -99,15 +114,15 @@ const App: React.FC = () => {
 
     const saveData = async () => {
       try {
-        await fetch('/api/tiers', {
+        // Save Tiers
+        await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(tiers)
+          body: JSON.stringify({ action: 'saveTiers', tiers })
         });
-        await fetch('/api/announcements', {
+        // Save Announcements
+        await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(announcements)
+          body: JSON.stringify({ action: 'saveAnnouncements', announcements })
         });
       } catch (error) {
         console.error('Error saving data:', error);
@@ -133,10 +148,9 @@ const App: React.FC = () => {
     const participantWithToken = { ...newParticipant, secretToken };
     
     try {
-      const response = await fetch('/api/participants', {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(participantWithToken)
+        body: JSON.stringify({ action: 'addParticipant', ...participantWithToken })
       });
       if (response.ok) {
         setParticipants(prev => [participantWithToken, ...prev]);
@@ -150,10 +164,9 @@ const App: React.FC = () => {
   const updateParticipantTID = async (id: string, trackingId: string) => {
     try {
       const status = EntryStatus.PENDING;
-      await fetch('/api/participants/tid', {
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, trackingId, status })
+        body: JSON.stringify({ action: 'updateParticipantTID', id, trackingId, status })
       });
       setParticipants(prev => prev.map(p => p.id === id ? { ...p, trackingId, status } : p));
     } catch (error) {
@@ -163,10 +176,9 @@ const App: React.FC = () => {
 
   const updateParticipantStatus = async (id: string, status: EntryStatus) => {
     try {
-      await fetch('/api/participants/status', {
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status })
+        body: JSON.stringify({ action: 'updateParticipantStatus', id, status })
       });
       setParticipants(prev => prev.map(p => p.id === id ? { ...p, status } : p));
     } catch (error) {
@@ -203,10 +215,9 @@ const App: React.FC = () => {
   const handleSaveWinner = async (participantId: string, winAmount: number) => {
     const winningDate = Date.now();
     try {
-      await fetch('/api/participants/winner', {
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: participantId, winAmount, winningDate })
+        body: JSON.stringify({ action: 'updateParticipantWinner', id: participantId, winAmount, winningDate })
       });
       setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, isWinner: true, winAmount, winningDate } : p));
       
