@@ -51,10 +51,16 @@ const App: React.FC = () => {
       try {
         const response = await fetch('/api/data');
         if (response.ok) {
-          const data = await response.json();
-          if (data.participants.length > 0) setParticipants(data.participants);
-          if (data.tiers.length > 0) setTiers(data.tiers);
-          if (data.announcements.length > 0) setAnnouncements(data.announcements);
+          try {
+            const data = await response.json();
+            if (data.participants && data.participants.length > 0) setParticipants(data.participants);
+            if (data.tiers && data.tiers.length > 0) setTiers(data.tiers);
+            if (data.announcements && data.announcements.length > 0) setAnnouncements(data.announcements);
+          } catch (jsonError) {
+            console.error('Error parsing JSON data:', jsonError);
+          }
+        } else {
+            console.error('API response not OK:', response.status);
         }
       } catch (error) {
         console.error('Error fetching data:', error);

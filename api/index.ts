@@ -240,7 +240,7 @@ app.get("/api/health", (req, res) => {
 
 // Proxy requests to Google Apps Script
 // 👇👇👇 REPLACE THIS WITH YOUR NEW DEPLOYED WEB APP URL 👇👇👇
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLbTK6f1ShsNKXs-fyJtgwC0MltBpys1rCNk57e8OeILoC-YKZC_NjaePrf1BPztUp/exec"; 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUD1ijzm5yZ-OM_42JsuDoONPbj6CsJU3NwDP1JFZuCbKoI0dlog422Cj7YHeVnuE/exec"; 
 // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
 async function callAppsScript(action: string, payload: any = {}) {
@@ -252,10 +252,20 @@ async function callAppsScript(action: string, payload: any = {}) {
       },
       body: JSON.stringify({ action, ...payload })
     });
-    const data = await response.json();
-    return data;
+    
+    const text = await response.text();
+    try {
+        if (!text) {
+            console.warn(`Apps Script returned empty response for action: ${action}`);
+            return { status: 'error', message: 'Empty response from Apps Script' };
+        }
+        return JSON.parse(text);
+    } catch (e) {
+        console.error(`Apps Script Invalid JSON (${action}):`, text.substring(0, 500)); // Log first 500 chars
+        return { status: 'error', message: 'Invalid JSON from Apps Script', raw: text.substring(0, 100) };
+    }
   } catch (error) {
-    console.error(`Apps Script Error (${action}):`, error);
+    console.error(`Apps Script Network Error (${action}):`, error);
     return { status: 'error', message: error.toString() };
   }
 }
@@ -266,6 +276,8 @@ app.get("/api/data", async (req, res) => {
     res.json(result.data);
   } else {
     // Fallback empty structure if fetch fails, to prevent frontend crash
+    // Also log the error so we can see it in server logs
+    console.error("Failed to fetch data from Apps Script:", result);
     res.json({ participants: [], tiers: [], announcements: [] });
   }
 });
