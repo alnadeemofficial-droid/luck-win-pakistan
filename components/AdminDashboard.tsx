@@ -117,34 +117,39 @@ const AdminDashboard: React.FC<Props> = ({
     e.preventDefault();
     
     // 👇👇👇 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE 👇👇👇
-    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzYAdcLarrUx4P-sAAoHWUI2jvQg7CxQO7n4c6M19XzfBVbtJdGDsOAkKmhoMXlTO7u/exec"; 
+    const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwgAFg3hI4MOewzPmACzGrpRU7-IyKePRyFrhWiq4ccCJ5fDdgOLlwNjjn_ZZ0gtfYe/exec"; 
     // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
     try {
+      console.log("Sending login request to:", GOOGLE_SCRIPT_API_URL);
+      console.log("Payload:", { action: 'login', username: username.trim(), password: adminPassword.trim() });
+
       // Sending POST request to Google Apps Script
+      // Note: We use 'no-cors' mode if we don't need the response, but here we DO need it.
+      // Google Apps Script Web App must be deployed as "Execute as: Me" and "Who has access: Anyone".
       const response = await fetch(GOOGLE_SCRIPT_API_URL, {
         method: 'POST',
         body: JSON.stringify({ 
             action: 'login',
-            username: username, 
-            password: adminPassword 
+            username: username.trim(), 
+            password: adminPassword.trim() 
         })
       });
 
       const result = await response.json();
+      console.log("Server Response:", result);
 
-      if (result.result === 'success') {
+      // Check for various success indicators
+      if (result.result === 'success' || result.status === 'success' || result.success === true) {
         // Login Successful
         setIsAdminAuthenticated(true);
-        // Note: In a real multi-page app, we would redirect: window.location.href = 'dashboard.html';
-        // Since this is a React SPA, we update state to show the dashboard.
       } else {
         // Login Failed
-        alert('Login Failed: ' + (result.message || 'Invalid username or password'));
+        alert('Login Failed (Server Response): ' + (result.message || result.error || 'Invalid credentials'));
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Network error or API issue. Please check console.');
+      alert('Network error or API issue. Please check console for details.');
     }
   };
 
