@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Participant, EntryStatus, InvestmentOption, Announcement, Language } from './types';
 import { INITIAL_INVESTMENT_TIERS, TRANSLATIONS } from './constants';
-import { GOOGLE_SCRIPT_URL } from './config';
 import AdminDashboard from './components/AdminDashboard';
 import RegistrationForm from './components/RegistrationForm';
 import StatusChecker from './components/StatusChecker';
@@ -56,34 +55,22 @@ const App: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Use direct Google Apps Script URL
-        // Note: Using POST with action: 'getData' is safer for avoiding caching issues
-        // and consistent with other actions.
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'getData' })
-        });
-        
+        const response = await fetch('/api/data');
         if (response.ok) {
           try {
             const data = await response.json();
-            if (data.status === 'success' && data.data) {
-                const { participants, tiers, announcements } = data.data;
-                if (participants && participants.length > 0) setParticipants(participants);
-                if (tiers && tiers.length > 0) setTiers(tiers);
-                if (announcements && announcements.length > 0) setAnnouncements(announcements);
-                setError(null);
-            } else {
-                console.error('API Error:', data);
-                setError(data.message || 'Failed to load data');
-            }
+            if (data.participants && data.participants.length > 0) setParticipants(data.participants);
+            if (data.tiers && data.tiers.length > 0) setTiers(data.tiers);
+            if (data.announcements && data.announcements.length > 0) setAnnouncements(data.announcements);
+            setError(null);
           } catch (jsonError) {
             console.error('Error parsing JSON data:', jsonError);
             setError('Failed to parse data from server.');
           }
         } else {
-            console.error('API response not OK:', response.status);
-            setError(`Failed to load data: ${response.statusText || 'Unknown Error'}`);
+            const errData = await response.json().catch(() => ({}));
+            console.error('API response not OK:', response.status, errData);
+            setError(`Failed to load data: ${errData.details || response.statusText || 'Unknown Error'}`);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -114,15 +101,15 @@ const App: React.FC = () => {
 
     const saveData = async () => {
       try {
-        // Save Tiers
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch('/api/tiers', {
           method: 'POST',
-          body: JSON.stringify({ action: 'saveTiers', tiers })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tiers)
         });
-        // Save Announcements
-        await fetch(GOOGLE_SCRIPT_URL, {
+        await fetch('/api/announcements', {
           method: 'POST',
-          body: JSON.stringify({ action: 'saveAnnouncements', announcements })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(announcements)
         });
       } catch (error) {
         console.error('Error saving data:', error);
@@ -148,9 +135,10 @@ const App: React.FC = () => {
     const participantWithToken = { ...newParticipant, secretToken };
     
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch('/api/participants', {
         method: 'POST',
-        body: JSON.stringify({ action: 'addParticipant', ...participantWithToken })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(participantWithToken)
       });
       if (response.ok) {
         setParticipants(prev => [participantWithToken, ...prev]);
@@ -164,9 +152,10 @@ const App: React.FC = () => {
   const updateParticipantTID = async (id: string, trackingId: string) => {
     try {
       const status = EntryStatus.PENDING;
-      await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch('/api/participants/tid', {
         method: 'POST',
-        body: JSON.stringify({ action: 'updateParticipantTID', id, trackingId, status })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, trackingId, status })
       });
       setParticipants(prev => prev.map(p => p.id === id ? { ...p, trackingId, status } : p));
     } catch (error) {
@@ -176,9 +165,10 @@ const App: React.FC = () => {
 
   const updateParticipantStatus = async (id: string, status: EntryStatus) => {
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch('/api/participants/status', {
         method: 'POST',
-        body: JSON.stringify({ action: 'updateParticipantStatus', id, status })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
       });
       setParticipants(prev => prev.map(p => p.id === id ? { ...p, status } : p));
     } catch (error) {
@@ -215,9 +205,10 @@ const App: React.FC = () => {
   const handleSaveWinner = async (participantId: string, winAmount: number) => {
     const winningDate = Date.now();
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch('/api/participants/winner', {
         method: 'POST',
-        body: JSON.stringify({ action: 'updateParticipantWinner', id: participantId, winAmount, winningDate })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: participantId, winAmount, winningDate })
       });
       setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, isWinner: true, winAmount, winningDate } : p));
       
@@ -440,7 +431,7 @@ const App: React.FC = () => {
               <div className="p-8 space-y-6">
                 <div className="text-center space-y-1">
                   <h4 className="text-3xl font-black text-gray-900">{selectedWinner.name}</h4>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{selectedWinner.phone.replace(/(\d{4})\d{4}(\d{3})/, '$1****$2')}</p>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{String(selectedWinner.phone).replace(/(\d{4})\d{4}(\d{3})/, '$1****$2')}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

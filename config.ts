@@ -1,1 +1,0 @@
-export const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0l87VYtVT6MHQ7rpFVsEb5E4a7CuvSUZEmbYnNsqw9_L3MbeSDkTKqxexV2OWAAlX/exec";

@@ -159,7 +159,7 @@ const LuckyDraw: React.FC<Props> = ({ tier, participants, lang, onBack, onSaveWi
                       <div>
                         <p className="text-[10px] text-gray-500 font-black uppercase">موبائل نمبر (Phone)</p>
                         <p className="text-2xl font-mono font-black">
-                          {revealedFields.phone ? winner.phone : winner.phone.replace(/(\d{4})\d{4}(\d{3})/, '$1****$2')}
+                          {revealedFields.phone ? winner.phone : String(winner.phone).replace(/(\d{4})\d{4}(\d{3})/, '$1****$2')}
                         </p>
                       </div>
                     </div>
@@ -230,7 +230,7 @@ const LuckyDraw: React.FC<Props> = ({ tier, participants, lang, onBack, onSaveWi
             {approvedParticipants.map(p => (
               <div key={p.id} className={`p-3 rounded-xl border text-center transition-all ${winner?.id === p.id ? 'bg-yellow-500 border-yellow-400 text-yellow-900 scale-110 shadow-lg z-10' : 'bg-white/5 border-white/10 text-gray-400'}`}>
                 <p className="text-xs font-black truncate">{p.name}</p>
-                <p className="text-[9px] font-mono opacity-60">{p.phone.slice(-4)}</p>
+                <p className="text-[9px] font-mono opacity-60">{String(p.phone).slice(-4)}</p>
               </div>
             ))}
           </div>

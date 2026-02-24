@@ -1,240 +1,210 @@
-function doGet(e) {
-  return handleRequest({ action: 'getData' });
-}
-
 function doPost(e) {
-  var jsonData;
-  try {
-    jsonData = JSON.parse(e.postData.contents);
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Invalid JSON body' })).setMimeType(ContentService.MimeType.JSON);
-  }
-  return handleRequest(jsonData);
-}
-
-function handleRequest(jsonData) {
   var lock = LockService.getScriptLock();
   lock.tryLock(10000);
 
   try {
-    var doc = SpreadsheetApp.getActiveSpreadsheet();
-    var action = jsonData.action;
+    var output = {};
+    var data = JSON.parse(e.postData.contents);
+    var action = data.action;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // 1. Login Action
-    if (action === 'login') {
-      var username = jsonData.username;
-      var password = jsonData.password;
-      
-      // Get credentials from Settings sheet
-      var settingsSheet = getOrCreateSheet(doc, 'Settings');
-      var storedUsername = settingsSheet.getRange('B1').getValue();
-      var storedPassword = settingsSheet.getRange('B2').getValue();
-      
-      // Initialize default credentials if empty
-      if (!storedUsername) {
-        settingsSheet.getRange('A1').setValue('Admin Username');
-        settingsSheet.getRange('B1').setValue('admin');
-        storedUsername = 'admin';
-      }
-      if (!storedPassword) {
-        settingsSheet.getRange('A2').setValue('Admin Password');
-        settingsSheet.getRange('B2').setValue('12345');
-        storedPassword = '12345';
-      }
-      
-      // Convert to string for comparison
-      if (String(username).trim() === String(storedUsername).trim() && String(password).trim() === String(storedPassword).trim()) { 
-        return ContentService.createTextOutput(JSON.stringify({ status: 'success', token: 'admin-token-123' })).setMimeType(ContentService.MimeType.JSON);
-      } else {
-        return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Invalid credentials' })).setMimeType(ContentService.MimeType.JSON);
-      }
-    }
-
-    // 2. Get All Data
     if (action === 'getData') {
-      var participants = getSheetData(doc, 'Participants');
-      var tiers = getSheetData(doc, 'Tiers');
-      var announcements = getSheetData(doc, 'Announcements');
-      
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        data: {
-          participants: participants,
-          tiers: tiers,
-          announcements: announcements
-        }
-      })).setMimeType(ContentService.MimeType.JSON);
+      output = getAllData(ss);
+    } else if (action === 'addParticipant') {
+      output = addParticipant(ss, data);
+    } else if (action === 'updateParticipantStatus') {
+      output = updateParticipantStatus(ss, data);
+    } else if (action === 'updateParticipantTID') {
+      output = updateParticipantTID(ss, data);
+    } else if (action === 'updateParticipantWinner') {
+      output = updateParticipantWinner(ss, data);
+    } else if (action === 'saveTiers') {
+      output = saveTiers(ss, data);
+    } else if (action === 'saveAnnouncements') {
+      output = saveAnnouncements(ss, data);
+    } else if (action === 'login') {
+      output = handleLogin(ss, data);
     }
 
-    // 3. Add Participant
-    if (action === 'addParticipant') {
-      var sheet = getOrCreateSheet(doc, 'Participants');
-      
-      // Ensure Headers exist if sheet is new or empty
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow([
-          'id', 'name', 'phone', 'network', 
-          'categoryId', 'investAmount', 'trackingId', 'status', 
-          'timestamp', 'secretToken', 'isWinner', 'winAmount', 'winningDate'
-        ]);
-      }
-
-      var rowData = [
-        jsonData.id, 
-        jsonData.name, 
-        jsonData.phone, 
-        jsonData.network,
-        jsonData.categoryId, 
-        jsonData.investAmount || '', 
-        jsonData.trackingId || '', 
-        jsonData.status,
-        jsonData.timestamp, 
-        jsonData.secretToken || '', 
-        jsonData.isWinner || 'FALSE',
-        jsonData.winAmount || '', 
-        jsonData.winningDate || ''
-      ];
-      sheet.appendRow(rowData);
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 4. Update Participant Status
-    if (action === 'updateParticipantStatus') {
-      updateRowById(doc, 'Participants', jsonData.id, { 'status': jsonData.status }); 
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 5. Update TID
-    if (action === 'updateParticipantTID') {
-      updateRowById(doc, 'Participants', jsonData.id, { 
-        'trackingId': jsonData.trackingId, 
-        'status': jsonData.status 
-      });
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 6. Update Winner
-    if (action === 'updateParticipantWinner') {
-      updateRowById(doc, 'Participants', jsonData.id, { 
-        'isWinner': 'TRUE', 
-        'winAmount': jsonData.winAmount, 
-        'winningDate': jsonData.winningDate 
-      });
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 7. Save Tiers
-    if (action === 'saveTiers') {
-      var sheet = getOrCreateSheet(doc, 'Tiers');
-      var tiers = jsonData.tiers;
-      
-      // Only clear and save if we actually received data
-      // This prevents wiping the sheet if an empty array is sent by mistake
-      if (tiers && Array.isArray(tiers)) {
-        sheet.clear(); // Clear existing data
-        if (tiers.length > 0) {
-          var headers = Object.keys(tiers[0]);
-          sheet.appendRow(headers);
-          var rows = tiers.map(t => headers.map(h => t[h]));
-          if (rows.length > 0) {
-             sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-          }
-        } else {
-           // If array is empty (user deleted all tiers), just set headers or leave empty
-           // But let's at least keep headers to avoid confusion
-           sheet.appendRow(['id', 'investAmount', 'winAmount', 'membersNeeded', 'currentMembers', 'qrData', 'qrImage', 'color', 'isExpired', 'drawCompleted']);
-        }
-      }
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 8. Save Announcements
-    if (action === 'saveAnnouncements') {
-      var sheet = getOrCreateSheet(doc, 'Announcements');
-      var anns = jsonData.announcements;
-      
-      if (anns && Array.isArray(anns)) {
-        sheet.clear();
-        if (anns.length > 0) {
-          var headers = Object.keys(anns[0]);
-          sheet.appendRow(headers);
-          var rows = anns.map(a => headers.map(h => a[h]));
-          if (rows.length > 0) {
-             sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-          }
-        } else {
-           sheet.appendRow(['id', 'text', 'textEn', 'active']);
-        }
-      }
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Unknown action: ' + action })).setMimeType(ContentService.MimeType.JSON);
-
+    return ContentService.createTextOutput(JSON.stringify(output)).setMimeType(ContentService.MimeType.JSON);
   } catch (e) {
-    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: e.toString() })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({status: 'error', message: e.toString()})).setMimeType(ContentService.MimeType.JSON);
   } finally {
     lock.releaseLock();
   }
 }
 
-function getSheetData(doc, sheetName) {
-  var sheet = doc.getSheetByName(sheetName);
-  if (!sheet) return [];
+function getAllData(ss) {
+  var pSheet = getOrCreateSheet(ss, 'Participants');
+  var tSheet = getOrCreateSheet(ss, 'Tiers');
+  var aSheet = getOrCreateSheet(ss, 'Announcements');
   
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return []; // Only headers or empty
+  var participants = pSheet.getDataRange().getValues();
+  var tiers = tSheet.getDataRange().getValues();
+  var announcements = aSheet.getDataRange().getValues();
   
-  var headers = data[0];
-  var results = [];
+  // Remove headers
+  participants.shift();
+  tiers.shift();
+  announcements.shift();
   
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    var obj = {};
-    for (var j = 0; j < headers.length; j++) {
-      obj[headers[j]] = row[j];
+  return {
+    status: 'success',
+    data: {
+      participants: participants.map(rowToParticipant),
+      tiers: tiers.map(rowToTier),
+      announcements: announcements.map(rowToAnnouncement)
     }
-    results.push(obj);
-  }
-  return results;
+  };
 }
 
-function getOrCreateSheet(doc, sheetName) {
-  var sheet = doc.getSheetByName(sheetName);
+function addParticipant(ss, data) {
+  var sheet = getOrCreateSheet(ss, 'Participants');
+  // Generate QR Code URL
+  // Using qrserver API for simplicity. You can use any QR code API.
+  var qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(data.secretToken);
+  
+  // Format timestamp to be more readable in the sheet (e.g., "2/23/2026 10:30:00")
+  var timestamp = new Date(data.timestamp).toLocaleString('en-US', { timeZone: 'Asia/Karachi' }); // Adjust timezone as needed
+
+  sheet.appendRow([
+    data.id,
+    data.name,
+    data.phone,
+    data.network, // Network
+    data.categoryId,
+    data.status,
+    timestamp, // Column G: Formatted Timestamp
+    data.secretToken,
+    data.trackingId,
+    '', // Win Amount
+    '', // Winning Date
+    qrCodeUrl // Column L: QR Code URL
+  ]);
+  return { status: 'success', message: 'Participant added' };
+}
+
+function updateParticipantStatus(ss, data) {
+  var sheet = getOrCreateSheet(ss, 'Participants');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] == data.id) {
+      sheet.getRange(i + 1, 6).setValue(data.status); // Column F is Status (index 6)
+      return { status: 'success', message: 'Status updated' };
+    }
+  }
+  return { status: 'error', message: 'Participant not found' };
+}
+
+function updateParticipantTID(ss, data) {
+  var sheet = getOrCreateSheet(ss, 'Participants');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] == data.id) {
+      sheet.getRange(i + 1, 9).setValue(data.trackingId); // Column I is TID (index 9)
+      sheet.getRange(i + 1, 6).setValue(data.status);
+      return { status: 'success', message: 'TID updated' };
+    }
+  }
+  return { status: 'error', message: 'Participant not found' };
+}
+
+function updateParticipantWinner(ss, data) {
+  var sheet = getOrCreateSheet(ss, 'Participants');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] == data.id) {
+      sheet.getRange(i + 1, 10).setValue(data.winAmount); // Column J
+      sheet.getRange(i + 1, 11).setValue(new Date(data.winningDate).toISOString()); // Column K
+      return { status: 'success', message: 'Winner updated' };
+    }
+  }
+  return { status: 'error', message: 'Participant not found' };
+}
+
+function saveTiers(ss, data) {
+  var sheet = getOrCreateSheet(ss, 'Tiers');
+  sheet.clearContents();
+  sheet.appendRow(['ID', 'Invest Amount', 'Win Amount', 'Members Needed', 'Current Members', 'Color', 'Is Expired', 'Draw Completed', 'QR Image', 'QR Data']);
+  
+  data.tiers.forEach(function(t) {
+    sheet.appendRow([t.id, t.investAmount, t.winAmount, t.membersNeeded, t.currentMembers, t.color, t.isExpired, t.drawCompleted, t.qrImage, t.qrData]);
+  });
+  return { status: 'success', message: 'Tiers saved' };
+}
+
+function saveAnnouncements(ss, data) {
+  var sheet = getOrCreateSheet(ss, 'Announcements');
+  sheet.clearContents();
+  sheet.appendRow(['ID', 'Text (UR)', 'Text (EN)', 'Active']);
+  
+  data.announcements.forEach(function(a) {
+    sheet.appendRow([a.id, a.text, a.textEn, a.active]);
+  });
+  return { status: 'success', message: 'Announcements saved' };
+}
+
+function handleLogin(ss, data) {
+  // Simple hardcoded check for now, or you can store admins in a sheet
+  if (data.username === 'admin' && data.password === 'admin123') {
+     return { status: 'success', message: 'Login successful' };
+  }
+  return { status: 'error', message: 'Invalid credentials' };
+}
+
+// Helpers
+function getOrCreateSheet(ss, name) {
+  var sheet = ss.getSheetByName(name);
   if (!sheet) {
-    sheet = doc.insertSheet(sheetName);
+    sheet = ss.insertSheet(name);
+    if (name === 'Participants') {
+      sheet.appendRow(['ID', 'Name', 'Phone', 'Network', 'Category ID', 'Status', 'Timestamp', 'Secret Token', 'Tracking ID', 'Win Amount', 'Winning Date', 'QR Code URL']);
+    } else if (name === 'Tiers') {
+      sheet.appendRow(['ID', 'Invest Amount', 'Win Amount', 'Members Needed', 'Current Members', 'Color', 'Is Expired', 'Draw Completed', 'QR Image', 'QR Data']);
+    } else if (name === 'Announcements') {
+      sheet.appendRow(['ID', 'Text (UR)', 'Text (EN)', 'Active']);
+    }
   }
   return sheet;
 }
 
-function updateRowById(doc, sheetName, id, updates) {
-  var sheet = doc.getSheetByName(sheetName);
-  if (!sheet) return;
-  
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 1) return;
-  
-  var headers = data[0];
-  // Map header name to column index (0-based)
-  var headerMap = {};
-  for (var h = 0; h < headers.length; h++) {
-    headerMap[headers[h]] = h;
-  }
+function rowToParticipant(row) {
+  return {
+    id: row[0],
+    name: row[1],
+    phone: row[2],
+    network: row[3],
+    categoryId: row[4],
+    status: row[5],
+    timestamp: row[6],
+    secretToken: row[7],
+    trackingId: row[8],
+    winAmount: row[9],
+    winningDate: row[10],
+    // qrCodeUrl: row[11] // Not needed on frontend usually, but stored in sheet
+  };
+}
 
-  // Find ID column
-  var idColIndex = headerMap['id'];
-  if (idColIndex === undefined) idColIndex = 0; // Default to first column
+function rowToTier(row) {
+  return {
+    id: row[0],
+    investAmount: row[1],
+    winAmount: row[2],
+    membersNeeded: row[3],
+    currentMembers: row[4],
+    color: row[5],
+    isExpired: row[6],
+    drawCompleted: row[7],
+    qrImage: row[8],
+    qrData: row[9]
+  };
+}
 
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][idColIndex] == id) { 
-      for (var key in updates) {
-        var colIndex = headerMap[key];
-        if (colIndex !== undefined) {
-          // getRange(row, col) is 1-indexed. Row is i+1. Col is colIndex+1.
-          sheet.getRange(i + 1, colIndex + 1).setValue(updates[key]);
-        }
-      }
-      return; // Stop after finding the row
-    }
-  }
+function rowToAnnouncement(row) {
+  return {
+    id: row[0],
+    text: row[1],
+    textEn: row[2],
+    active: row[3]
+  };
 }

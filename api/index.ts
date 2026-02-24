@@ -12,11 +12,17 @@ app.use(cors());
 app.use(express.json());
 
 // Proxy requests to Google Apps Script
-// 👇👇👇 REPLACE THIS WITH YOUR NEW DEPLOYED WEB APP URL 👇👇👇
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0l87VYtVT6MHQ7rpFVsEb5E4a7CuvSUZEmbYnNsqw9_L3MbeSDkTKqxexV2OWAAlX/exec"; 
-// 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
+
+if (!GOOGLE_SCRIPT_URL) {
+  console.error("CRITICAL ERROR: GOOGLE_SCRIPT_URL is not defined in environment variables.");
+}
 
 async function callAppsScript(action: string, payload: any = {}) {
+  if (!GOOGLE_SCRIPT_URL) {
+    return { status: 'error', message: 'Server Configuration Error: GOOGLE_SCRIPT_URL missing' };
+  }
+
   try {
     console.log(`Calling Apps Script: ${action}`);
     const response = await axios.post(GOOGLE_SCRIPT_URL, { action, ...payload }, {
