@@ -12,15 +12,18 @@ app.use(cors());
 app.use(express.json());
 
 // Proxy requests to Google Apps Script
-const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL ? process.env.GOOGLE_SCRIPT_URL.trim() : "";
 
 if (!GOOGLE_SCRIPT_URL) {
   console.error("CRITICAL ERROR: GOOGLE_SCRIPT_URL is not defined in environment variables.");
+} else {
+  console.log("GOOGLE_SCRIPT_URL is set:", GOOGLE_SCRIPT_URL.substring(0, 10) + "...");
 }
 
 async function callAppsScript(action: string, payload: any = {}) {
   if (!GOOGLE_SCRIPT_URL) {
-    return { status: 'error', message: 'Server Configuration Error: GOOGLE_SCRIPT_URL missing' };
+    console.error("Attempted to call Apps Script without GOOGLE_SCRIPT_URL set.");
+    return { status: 'error', message: 'Server Configuration Error: GOOGLE_SCRIPT_URL is missing in environment variables.' };
   }
 
   try {
@@ -28,28 +31,24 @@ async function callAppsScript(action: string, payload: any = {}) {
     const response = await axios.post(GOOGLE_SCRIPT_URL, { action, ...payload }, {
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; GoogleAppsScriptProxy/1.0)',
       },
-      // Follow redirects automatically (default is 5)
       maxRedirects: 5,
-      // Validate status: resolve only if status is 2xx
       validateStatus: (status) => status >= 200 && status < 300,
+      timeout: 15000 // 15 second timeout
     });
     
     const data = response.data;
-    console.log(`Apps Script Response (${action}):`, JSON.stringify(data).substring(0, 100) + "...");
+    // console.log(`Apps Script Response (${action}):`, JSON.stringify(data).substring(0, 100) + "...");
 
     if (typeof data === 'string') {
-        // Sometimes Apps Script returns stringified JSON if ContentService is used incorrectly
         try {
             return JSON.parse(data);
         } catch (e) {
              console.warn(`Apps Script returned string but not JSON for action: ${action}`);
-             // If it's HTML (e.g. error page), return error
              if (data.trim().startsWith('<')) {
-                 return { status: 'error', message: 'Apps Script returned HTML (likely error page)', raw: data.substring(0, 100) };
+                 return { status: 'error', message: 'Apps Script returned HTML (likely error page or 404)', raw: data.substring(0, 100) };
              }
-             return { status: 'error', message: 'Invalid response format', raw: data.substring(0, 100) };
+             return { status: 'error', message: 'Invalid response format from Apps Script', raw: data.substring(0, 100) };
         }
     }
     
@@ -131,6 +130,7 @@ app.post("/api/participants/winner", async (req, res) => {
 
 app.post("/api/tiers", async (req, res) => {
   try {
+    console.log("POST /api/tiers payload:", JSON.stringify(req.body).substring(0, 100) + "...");
     const result = await callAppsScript('saveTiers', { tiers: req.body });
     res.json(result);
   } catch (e: any) {

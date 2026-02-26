@@ -101,16 +101,25 @@ const App: React.FC = () => {
 
     const saveData = async () => {
       try {
-        await fetch('/api/tiers', {
+        const tiersRes = await fetch('/api/tiers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(tiers)
         });
-        await fetch('/api/announcements', {
+        if (!tiersRes.ok) {
+            const err = await tiersRes.text();
+            console.error('Error saving tiers:', tiersRes.status, err);
+        }
+
+        const annRes = await fetch('/api/announcements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(announcements)
         });
+        if (!annRes.ok) {
+            const err = await annRes.text();
+            console.error('Error saving announcements:', annRes.status, err);
+        }
       } catch (error) {
         console.error('Error saving data:', error);
       }

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createServer as createViteServer } from "vite";
 import app from "./api/index"; // Import the Express app
 

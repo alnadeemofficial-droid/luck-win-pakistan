@@ -1,3 +1,20 @@
+/**
+ * Google Apps Script Backend for LuckWin
+ * 
+ * REQUIRED PERMISSIONS:
+ * - SpreadsheetApp (to access Google Sheets)
+ * - LockService (to prevent concurrent write issues)
+ * 
+ * DEPLOYMENT:
+ * - Deploy as Web App
+ * - Execute as: Me
+ * - Who has access: Anyone
+ */
+
+function doGet(e) {
+  return ContentService.createTextOutput("LuckWin Backend is Running. Use POST requests to interact.").setMimeType(ContentService.MimeType.TEXT);
+}
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   lock.tryLock(10000);

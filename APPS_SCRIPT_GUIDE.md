@@ -51,11 +51,12 @@ You need to create the following files in the Apps Script editor and copy the co
     *   **Execute as**: **Me** (your email address).
     *   **Who has access**: **Anyone** (This is crucial for the website to access it without user login prompts).
 5.  Click **Deploy**.
-6.  You might be asked to **Authorize access**.
+6.  **AUTHORIZATION**: You will be asked to "Authorize access".
     *   Click **Review permissions**.
     *   Choose your Google account.
     *   If you see "Google hasn't verified this app", click **Advanced** -> **Go to [Project Name] (unsafe)**.
     *   Click **Allow**.
+    *   **Note**: This grants the script permission to access your Google Sheets and run as you. This is required.
 7.  Copy the **Web App URL** provided. It will look like `https://script.google.com/macros/s/.../exec`.
 
 ## Step 4: Connect to Your Website
