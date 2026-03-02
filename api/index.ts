@@ -1,23 +1,20 @@
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import axios from "axios";
 import cors from "cors";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Proxy requests to Google Apps Script
-const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL ? process.env.GOOGLE_SCRIPT_URL.trim() : "";
+// FOR TESTING ONLY: Hardcoded URL as requested. Will switch back to env var later.
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZFEe77o7bL9snv4LxJVJUsH8aujNqafmiVHewfm5h_HqRRG5sWPWZwNfmR99tJ2Hm/exec";
+// const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL ? process.env.GOOGLE_SCRIPT_URL.trim() : "";
 
 if (!GOOGLE_SCRIPT_URL) {
-  console.error("CRITICAL ERROR: GOOGLE_SCRIPT_URL is not defined in environment variables.");
+  console.error("CRITICAL ERROR: GOOGLE_SCRIPT_URL is not defined.");
 } else {
-  console.log("GOOGLE_SCRIPT_URL is set:", GOOGLE_SCRIPT_URL.substring(0, 10) + "...");
+  console.log("GOOGLE_SCRIPT_URL is set (Hardcoded for testing):", GOOGLE_SCRIPT_URL.substring(0, 10) + "...");
 }
 
 async function callAppsScript(action: string, payload: any = {}) {
@@ -34,11 +31,10 @@ async function callAppsScript(action: string, payload: any = {}) {
       },
       maxRedirects: 5,
       validateStatus: (status) => status >= 200 && status < 300,
-      timeout: 15000 // 15 second timeout
+      timeout: 25000 // Increased timeout for Vercel/GAS
     });
     
     const data = response.data;
-    // console.log(`Apps Script Response (${action}):`, JSON.stringify(data).substring(0, 100) + "...");
 
     if (typeof data === 'string') {
         try {
@@ -65,7 +61,7 @@ async function callAppsScript(action: string, payload: any = {}) {
 }
 
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", mode: "proxy_only" });
+  res.json({ status: "ok", mode: "proxy_only", env_check: !!GOOGLE_SCRIPT_URL });
 });
 
 app.get("/api/data", async (req, res) => {
@@ -75,7 +71,6 @@ app.get("/api/data", async (req, res) => {
       res.json(result.data);
     } else {
       console.error("Failed to fetch data from Apps Script:", result);
-      // Return the error so the frontend can show it
       res.status(502).json({ 
         error: "Failed to fetch data from Google Sheet", 
         details: result.message,
@@ -150,22 +145,8 @@ app.post("/api/announcements", async (req, res) => {
 });
 
 app.post("/api/admin/login", async (req, res) => {
-  // Proxy admin login to Apps Script as well, or keep local env var check if preferred.
-  // The user said "remove private key system", but didn't explicitly say remove ADMIN_PASSWORD.
-  // However, they said "focus only on this Google Sheet".
-  // The provided Apps Script HAS a login action. Let's use it!
-  
   try {
     const { username, password } = req.body;
-    // Note: Frontend sends 'password', but Apps Script expects 'username' and 'password'.
-    // AdminDashboard.tsx sends: { action: 'login', username, password } directly to Apps Script URL in one place,
-    // BUT also has a form that might post here?
-    // Let's check AdminDashboard.tsx again.
-    // AdminDashboard.tsx lines 116-154: It calls GOOGLE_SCRIPT_API_URL DIRECTLY.
-    // So this endpoint might not even be used by the frontend anymore for login?
-    // Wait, line 391 in original api/index.ts had /api/admin/login.
-    // Let's keep a proxy endpoint just in case, using Apps Script.
-    
     const result = await callAppsScript('login', { username: username || 'admin', password });
     res.json(result);
   } catch (e: any) {
@@ -174,18 +155,10 @@ app.post("/api/admin/login", async (req, res) => {
   }
 });
 
-// Serve static files in production (Vercel handles this via rewrites, but good for fallback)
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../dist")));
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../dist", "index.html"));
-  });
-}
-
-// Only listen if run directly (not imported as a module)
-if (import.meta.url === `file://${process.argv[1]}`) {
+// For local development
+if (process.env.NODE_ENV !== 'production') {
   const PORT = 3000;
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
