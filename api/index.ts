@@ -8,7 +8,7 @@ app.use(express.json());
 
 // Proxy requests to Google Apps Script
 // FOR TESTING ONLY: Hardcoded URL as requested. Will switch back to env var later.
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/KfycbyRa2e48kxuKv6gb6aA_QvaN9wrg3UkZPAkngsQnJHJW0ckXMAo097GoTo7imu_JBX4/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRa2e48kxuKv6gb6aA_QvaN9wrg3UkZPAkngsQnJHJW0ckXMAo097GoTo7imu_JBX4/exec";
 // const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL ? process.env.GOOGLE_SCRIPT_URL.trim() : "";
 
 if (!GOOGLE_SCRIPT_URL) {
