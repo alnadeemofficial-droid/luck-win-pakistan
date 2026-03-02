@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, XCircle, LogIn, Key, Globe, ArrowLeft, Users, Share2, ClipboardCheck, ExternalLink, ShieldCheck, Facebook, Twitter, Link } from 'lucide-react';
+import { Search, XCircle, LogIn, Key, Globe, ArrowLeft, Users, Share2, ClipboardCheck, ExternalLink, ShieldCheck, Facebook, Twitter, Link, Sparkles, Info } from 'lucide-react';
 import { Participant, EntryStatus, Language, InvestmentOption } from '../types';
 import { TRANSLATIONS, NETWORKS } from '../constants';
 
@@ -139,6 +139,8 @@ const StatusChecker: React.FC<Props> = ({ participants, tiers, lang, onBack, upd
                   const totalMembers = tierApprovedParticipants + (tier?.currentMembers || 0);
                   const needed = tier?.membersNeeded || 1;
                   const progress = Math.min((totalMembers / needed) * 100, 100);
+                  
+                  const bonusAmount = tier?.bonusPercentage ? (tier.winAmount * tier.bonusPercentage / 100) : 0;
 
                   return (
                     <div key={entry.id} className="bg-white border border-gray-100 p-5 rounded-[28px] shadow-sm space-y-4 relative overflow-hidden group">
@@ -159,6 +161,19 @@ const StatusChecker: React.FC<Props> = ({ participants, tiers, lang, onBack, upd
                            t.pendingMsg}
                         </div>
                       </div>
+
+                      {/* Bonus Info */}
+                      {entry.status === EntryStatus.APPROVED && tier?.bonusPercentage && (
+                        <div className="bg-yellow-50 border border-yellow-100 p-3 rounded-2xl flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-yellow-600" />
+                            <div className="text-[10px] font-black text-yellow-800 uppercase">
+                              {lang === 'ur' ? 'انوائٹ بونس' : 'Invite Bonus'} ({tier.bonusPercentage}%)
+                            </div>
+                          </div>
+                          <div className="text-xs font-black text-yellow-900">Rs. {bonusAmount}</div>
+                        </div>
+                      )}
 
                       {/* Status Specific Message */}
                       <div className={`p-3 rounded-2xl text-[11px] font-bold leading-relaxed border ${
@@ -211,6 +226,20 @@ const StatusChecker: React.FC<Props> = ({ participants, tiers, lang, onBack, upd
                         </p>
                       </div>
 
+                      {/* Invite Button for Approved */}
+                      {entry.status === EntryStatus.APPROVED && (
+                        <button 
+                          onClick={() => {
+                            const shareMsg = `${t.heroTitle}\nI invited you to join this card!\nInvest Rs. ${tier?.investAmount} & Win Rs. ${tier?.winAmount}!\nJoin here: ${window.location.origin}?card=${tier?.id}&ref=${encodeURIComponent(entry.name)}`;
+                            window.open(`https://wa.me/?text=${encodeURIComponent(shareMsg)}`, '_blank');
+                          }}
+                          className="w-full py-3 bg-blue-600 text-white rounded-2xl font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-100 active:scale-95 transition-all"
+                        >
+                          <Share2 className="w-4 h-4" />
+                          {lang === 'ur' ? 'دوستوں کو انوائٹ کریں اور بونس جیتیں' : 'Invite Friends & Win Bonus'}
+                        </button>
+                      )}
+
                       {/* Approved Token Section */}
                       {entry.status === EntryStatus.APPROVED && (
                         <div className="bg-gray-900 text-white p-5 rounded-[24px] space-y-4 shadow-xl border-t-4 border-green-500">
@@ -237,6 +266,20 @@ const StatusChecker: React.FC<Props> = ({ participants, tiers, lang, onBack, upd
                                   ? 'ممبرز مکمل ہونے پر آپ کو ایک لنک دیا جائے گا جس پر یہ ٹوکن لگا کر آپ رزلٹ دیکھ سکیں گے۔ لائیو قرعہ اندازی سب کے سامنے ہوگی!' 
                                   : 'When members are full, you will receive a link where you can enter this token to check results. Live draw will be public!'}
                               </p>
+                            </div>
+                            
+                            {/* Winner Process Info */}
+                            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-3">
+                              <h6 className="text-[10px] font-black text-yellow-400 uppercase flex items-center gap-2">
+                                <Info className="w-3.5 h-3.5" />
+                                {lang === 'ur' ? 'جیتنے کے بعد کیا ہوگا؟' : 'What happens after winning?'}
+                              </h6>
+                              <ul className="text-[9px] text-gray-300 font-bold space-y-1.5 list-disc list-inside">
+                                <li>{lang === 'ur' ? 'قرعہ اندازی یوٹیوب لائیو پر ہوگی۔' : 'Draw will be held on YouTube Live.'}</li>
+                                <li>{lang === 'ur' ? 'جیتنے والے سے اس کے فون نمبر پر رابطہ کیا جائے گا۔' : 'Winner will be contacted via phone number.'}</li>
+                                <li>{lang === 'ur' ? 'تصدیق کے بعد انعام کی رقم منتقل کر دی جائے گی۔' : 'Prize money will be transferred after verification.'}</li>
+                                <li>{lang === 'ur' ? 'جیتنے والے کا نام رزلٹ پورٹل پر بھی آئے گا۔' : 'Winner name will be displayed on Result Portal.'}</li>
+                              </ul>
                             </div>
                           </div>
                         </div>

@@ -15,7 +15,7 @@ import {
   Share2,
   X
 } from 'lucide-react';
-import { Participant, EntryStatus, InvestmentOption, Announcement, Language } from './types';
+import { Participant, EntryStatus, InvestmentOption, Announcement, Language, AdService, TermCondition } from './types';
 import { INITIAL_INVESTMENT_TIERS, TRANSLATIONS } from './constants';
 import AdminDashboard from './components/AdminDashboard';
 import RegistrationForm from './components/RegistrationForm';
@@ -25,10 +25,13 @@ import LuckyDraw from './components/LuckyDraw';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ur');
-  const [activeTab, setActiveTab] = useState<'home' | 'status' | 'admin' | 'result' | 'lucky-draw'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'status' | 'admin' | 'result' | 'lucky-draw' | 'services'>('home');
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [luckyDrawTier, setLuckyDrawTier] = useState<InvestmentOption | null>(null);
   const [tiers, setTiers] = useState<InvestmentOption[]>(INITIAL_INVESTMENT_TIERS);
+  const [ads, setAds] = useState<AdService[]>([]);
+  const [terms, setTerms] = useState<TermCondition[]>([]);
+  const [highlightedCardId, setHighlightedCardId] = useState<string | null>(null);
   const [deletedTier, setDeletedTier] = useState<{ tier: InvestmentOption, index: number } | null>(null);
   const [showUndo, setShowUndo] = useState(false);
   const [selectedTier, setSelectedTier] = useState<InvestmentOption | null>(null);
@@ -43,6 +46,20 @@ const App: React.FC = () => {
       active: true
     }
   ]);
+
+  const formatDate = (timestamp: number) => {
+    const d = new Date(timestamp);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const sortedTiers = [...tiers].sort((a, b) => {
+    if (a.id === highlightedCardId) return -1;
+    if (b.id === highlightedCardId) return 1;
+    return 0;
+  });
 
   const t = TRANSLATIONS[lang];
 
@@ -59,9 +76,11 @@ const App: React.FC = () => {
         if (response.ok) {
           try {
             const data = await response.json();
-            if (data.participants && data.participants.length > 0) setParticipants(data.participants);
-            if (data.tiers && data.tiers.length > 0) setTiers(data.tiers);
-            if (data.announcements && data.announcements.length > 0) setAnnouncements(data.announcements);
+            if (data.participants) setParticipants(data.participants);
+            if (data.tiers) setTiers(data.tiers);
+            if (data.announcements) setAnnouncements(data.announcements);
+            if (data.ads) setAds(data.ads);
+            if (data.terms) setTerms(data.terms);
             setError(null);
           } catch (jsonError) {
             console.error('Error parsing JSON data:', jsonError);
@@ -80,6 +99,26 @@ const App: React.FC = () => {
       }
     };
     fetchData();
+
+    // Check for shared card in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const cardId = urlParams.get('card');
+    const ref = urlParams.get('ref');
+    
+    if (cardId) {
+      setHighlightedCardId(cardId);
+      const tier = tiers.find(t => t.id === cardId);
+      if (tier) setSelectedTier(tier);
+    }
+    
+    if (ref) {
+      localStorage.setItem('luckwin_ref', ref);
+    }
+
+    // Remove params from URL without refresh
+    if (cardId || ref) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
 
     const savedLang = localStorage.getItem('luckwin_lang');
     if (savedLang) setLang(savedLang as Language);
@@ -248,6 +287,14 @@ const App: React.FC = () => {
             <h1 className="text-xl font-black text-gray-900 nastaliq tracking-tighter">LUCK WIN</h1>
           </div>
           <div className="flex items-center gap-2">
+            {activeTab !== 'home' && (
+              <button 
+                onClick={() => setActiveTab('home')}
+                className="flex items-center gap-1 bg-gray-100 px-3 py-1.5 rounded-full text-[10px] font-black text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                {lang === 'ur' ? 'واپس' : 'Back'}
+              </button>
+            )}
             <button onClick={toggleLanguage} className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full text-[10px] font-black text-gray-700 hover:bg-green-50 transition-colors">
               <Globe className="w-3 h-3" /> {lang === 'ur' ? 'English' : 'اردو'}
             </button>
@@ -307,50 +354,120 @@ const App: React.FC = () => {
                   <Trophy className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                   {t.viewResults}
                 </button>
+                <button 
+                  onClick={() => setActiveTab('services')}
+                  className="flex items-center justify-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-full font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all group"
+                >
+                  <Star className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  {lang === 'ur' ? 'سروسز پورٹل' : 'Services Portal'}
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-8">
-              {tiers.filter(t => !t.isExpired).map((tier, index) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sortedTiers.filter(t => !t.isExpired && (t.currentMembers + participants.filter(p => p.categoryId === t.id && p.status === EntryStatus.APPROVED).length < t.membersNeeded)).map((tier, index) => {
                 const tierParticipants = participants.filter(p => p.categoryId === tier.id && p.status === EntryStatus.APPROVED);
                 const currentCount = tierParticipants.length + tier.currentMembers;
                 const progress = Math.min((currentCount / tier.membersNeeded) * 100, 100);
-                const isExample = index === 0; // First one as example
-                const cardColor = tier.color || (isExample ? 'from-yellow-600 to-yellow-800' : 'from-green-600 to-green-900');
+                const isHighlighted = tier.id === highlightedCardId;
+                const cardColor = tier.color || 'from-green-600 to-green-900';
 
                 return (
-                  <div key={tier.id ? `${tier.id}-${index}` : `tier-${index}`} className={`bg-white rounded-[20px] md:rounded-[30px] shadow-xl overflow-hidden border-2 flex flex-col transition-all duration-300 transform hover:-translate-y-2 group relative ${isExample ? 'border-yellow-400' : 'border-gray-100'}`}>
-                    {isExample && (
-                      <div className="absolute top-4 -right-8 bg-yellow-400 text-yellow-900 text-[8px] font-black py-1 px-10 rotate-45 z-10 shadow-sm uppercase tracking-tighter">
-                        {lang === 'ur' ? 'مثال (Example)' : 'Example Card'}
-                      </div>
+                  <div 
+                    key={tier.id ? `${tier.id}-${index}` : `tier-${index}`} 
+                    onClick={() => setSelectedTier(tier)}
+                    className={`relative overflow-hidden rounded-[40px] shadow-2xl transition-all duration-500 cursor-pointer group hover:scale-[1.02] active:scale-95 ${isHighlighted ? 'ring-4 ring-blue-500 ring-offset-4 scale-[1.05] z-10' : ''}`}
+                    style={tier.cardType === 'CUSTOM_DESIGN' && tier.customBgImage ? {
+                      backgroundImage: `url(${tier.customBgImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      color: tier.customTextColor || '#ffffff'
+                    } : cardColor.startsWith('#') ? {
+                      background: `linear-gradient(135deg, ${cardColor}, ${cardColor}dd)`,
+                      color: '#ffffff'
+                    } : {}}
+                  >
+                    {!tier.customBgImage && !cardColor.startsWith('#') && (
+                      <div className={`absolute inset-0 bg-gradient-to-br ${cardColor} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
                     )}
-                    <div 
-                      className={`p-3 md:p-6 text-white text-center ${cardColor.startsWith('#') ? '' : `bg-gradient-to-br ${cardColor}`}`}
-                      style={cardColor.startsWith('#') ? { background: `linear-gradient(135deg, ${cardColor}, ${cardColor}dd)` } : {}}
-                    >
-                      <div className="text-[8px] opacity-70 font-black uppercase tracking-tighter">{t.investOnly}</div>
-                      <div className="text-lg md:text-4xl font-black drop-shadow-lg">Rs. {tier.investAmount}</div>
-                      <div className="h-px bg-white/20 my-2"></div>
-                      <div className="text-[8px] opacity-70 font-black uppercase tracking-tighter">{t.winTotal}</div>
-                      <div className="text-xl md:text-5xl font-black text-yellow-400 drop-shadow-xl scale-110">Rs. {tier.winAmount}</div>
-                    </div>
-                    <div className="p-3 md:p-6 space-y-3 flex-grow">
-                      <div className="flex justify-between items-center text-[8px] font-black uppercase">
-                        <div className="flex items-center gap-1 text-gray-400"><Users className="w-3 h-3" /> {currentCount} / {tier.membersNeeded}</div>
-                        <div className="text-green-600 flex items-center gap-1"><Star className="w-3 h-3 fill-green-600" /> LIVE</div>
+                    
+                    {tier.cardType === 'CUSTOM_DESIGN' && (
+                      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] group-hover:backdrop-blur-0 transition-all"></div>
+                    )}
+
+                    <div className="relative p-8 space-y-6 z-10">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">{lang === 'ur' ? 'انویسٹمنٹ' : 'Investment'}</span>
+                            {tier.cardType === 'TIME_BASED' && (
+                              <span className="bg-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full animate-pulse">LIVE DRAW</span>
+                            )}
+                          </div>
+                          <h3 className="text-4xl font-black tracking-tighter">Rs. {tier.investAmount}</h3>
+                        </div>
+                        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
+                          <Trophy className="w-6 h-6 text-white" />
+                        </div>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border">
-                        <div className={`h-full transition-all duration-1000 ${isExample ? 'bg-yellow-500' : 'bg-gradient-to-r from-green-400 to-green-600'}`} style={{ width: `${progress}%` }}></div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-end">
+                          <div className="space-y-0.5">
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{lang === 'ur' ? 'ممکنہ انعام' : 'Potential Win'}</p>
+                            <p className="text-2xl font-black">Rs. {tier.winAmount.toLocaleString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{lang === 'ur' ? 'ممبرز' : 'Members'}</p>
+                            <p className="text-sm font-black">{currentCount} / {tier.membersNeeded}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="w-full h-2.5 bg-black/20 rounded-full overflow-hidden p-0.5 border border-white/10">
+                          <div 
+                            className="h-full bg-white rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.5)]" 
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setSelectedTier(tier)} className={`flex-grow py-3 text-white rounded-xl text-[10px] md:text-sm font-black shadow-xl active:scale-95 transition-all ${isExample ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}>{t.joinNow}</button>
+
+                      {tier.cardType === 'TIME_BASED' && tier.drawDate && (
+                        <div className="bg-black/30 backdrop-blur-md p-3 rounded-2xl border border-white/10 flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                             <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                             <span className="text-[10px] font-black uppercase">{lang === 'ur' ? 'قرعہ اندازی' : 'Draw In'}</span>
+                           </div>
+                           <div className="text-xs font-black font-mono">
+                             {(() => {
+                               const diff = tier.drawDate - Date.now();
+                               if (diff <= 0) return 'DRAWING NOW...';
+                               const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                               const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                               const mins = Math.floor((diff / (1000 * 60)) % 60);
+                               return `${days}d ${hours}h ${mins}m`;
+                             })()}
+                           </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center pt-2">
+                        <div className="flex -space-x-2">
+                          {[1, 2, 3].map(i => (
+                            <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden">
+                              <img src={`https://picsum.photos/seed/user${i}/32/32`} referrerPolicy="no-referrer" alt="User" />
+                            </div>
+                          ))}
+                          <div className="w-6 h-6 rounded-full border-2 border-white bg-green-500 flex items-center justify-center text-[8px] font-black text-white">
+                            +{currentCount}
+                          </div>
+                        </div>
                         <button 
-                          onClick={() => {
-                            const text = `${t.heroTitle}\nInvest Rs. ${tier.investAmount} & Win Rs. ${tier.winAmount}!\nJoin here: ${window.location.href}`;
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const text = `${t.heroTitle}\nInvest Rs. ${tier.investAmount} & Win Rs. ${tier.winAmount}!\nJoin here: ${window.location.origin}?card=${tier.id}`;
                             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                           }}
-                          className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-all"
+                          className="p-3 bg-white/20 text-white rounded-xl hover:bg-white/30 transition-all backdrop-blur-md border border-white/20"
                         >
                           <Share2 className="w-4 h-4" />
                         </button>
@@ -405,7 +522,7 @@ const App: React.FC = () => {
                       <h4 className="font-black text-gray-900">{winner.name}</h4>
                       <div className="text-green-600 font-black text-xl">Rs. {winner.winAmount?.toLocaleString()}</div>
                       <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
-                        {new Date(winner.winningDate || 0).toLocaleDateString('en-PK', { day: 'numeric', month: 'short' })}
+                        {formatDate(winner.winningDate || 0)}
                       </div>
                     </div>
                   </div>
@@ -485,6 +602,53 @@ const App: React.FC = () => {
             updateTID={updateParticipantTID}
           />
         )}
+        {activeTab === 'services' && (
+          <div className="max-w-4xl mx-auto p-4 space-y-6 pb-20">
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-black nastaliq text-gray-900">{lang === 'ur' ? 'سروسز پورٹل' : 'Services Portal'}</h2>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{lang === 'ur' ? 'ہمارے پارٹنرز اور خصوصی سروسز' : 'Our Partners & Special Services'}</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {ads.filter(ad => ad.active).map(ad => (
+                <a 
+                  key={ad.id} 
+                  href={ad.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-white p-4 rounded-[32px] border border-gray-100 shadow-lg hover:shadow-xl transition-all group overflow-hidden relative"
+                >
+                  <div className="flex gap-4 items-center">
+                    <div className="w-20 h-20 bg-gray-100 rounded-2xl overflow-hidden shrink-0">
+                      {ad.imageUrl ? (
+                        <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <Globe className="w-8 h-8" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-grow space-y-1">
+                      <span className="text-[8px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full uppercase tracking-widest">{ad.category}</span>
+                      <h3 className="font-black text-gray-900 text-lg group-hover:text-blue-600 transition-colors">{ad.title}</h3>
+                      <p className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                        Visit Service <Share2 className="w-3 h-3" />
+                      </p>
+                    </div>
+                  </div>
+                </a>
+              ))}
+              {ads.length === 0 && (
+                <div className="col-span-full p-20 bg-white rounded-[40px] border border-dashed text-center space-y-4">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                    <Globe className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <p className="text-gray-400 font-bold italic">{lang === 'ur' ? 'فی الحال کوئی سروس دستیاب نہیں ہے۔' : 'No services available at the moment.'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {activeTab === 'result' && <ResultPortal participants={participants} tiers={tiers} lang={lang} onBack={() => setActiveTab('home')} />}
         {activeTab === 'lucky-draw' && luckyDrawTier && (
           <LuckyDraw 
@@ -507,6 +671,10 @@ const App: React.FC = () => {
             deleteTier={deleteTierWithUndo}
             announcements={announcements} 
             setAnnouncements={setAnnouncements}
+            ads={ads}
+            setAds={setAds}
+            terms={terms}
+            setTerms={setTerms}
             marqueeSpeed={marqueeSpeed}
             setMarqueeSpeed={setMarqueeSpeed}
             marqueePaused={marqueePaused}
@@ -551,6 +719,7 @@ const App: React.FC = () => {
           lang={lang} 
           onToggleLang={toggleLanguage} 
           existingParticipants={participants} 
+          allTerms={terms}
         />
       )}
       

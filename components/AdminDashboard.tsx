@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { 
   Users, CheckCircle, XCircle, Search, Plus, Trash2, QrCode, Image as ImageIcon, BellPlus, Edit3, Save, X, FastForward, Play, Pause, ArrowLeft, Phone, Network, Trophy, TrendingUp, ShieldCheck
 } from 'lucide-react';
-import { Participant, EntryStatus, Announcement, InvestmentOption } from '../types';
+import { Participant, EntryStatus, Announcement, InvestmentOption, AdService, TermCondition } from '../types';
 
 interface Props {
   participants: Participant[];
@@ -13,6 +13,10 @@ interface Props {
   deleteTier: (id: string) => void;
   announcements: Announcement[];
   setAnnouncements: React.Dispatch<React.SetStateAction<Announcement[]>>;
+  ads: AdService[];
+  setAds: React.Dispatch<React.SetStateAction<AdService[]>>;
+  terms: TermCondition[];
+  setTerms: React.Dispatch<React.SetStateAction<TermCondition[]>>;
   marqueeSpeed: number;
   setMarqueeSpeed: (speed: number) => void;
   marqueePaused: boolean;
@@ -22,18 +26,33 @@ interface Props {
 }
 
 const AdminDashboard: React.FC<Props> = ({ 
-  participants, updateStatus, tiers, setTiers, deleteTier, announcements, setAnnouncements, marqueeSpeed, setMarqueeSpeed, marqueePaused, setMarqueePaused, onBack, onStartDraw 
+  participants, updateStatus, tiers, setTiers, deleteTier, announcements, setAnnouncements, 
+  ads, setAds, terms, setTerms,
+  marqueeSpeed, setMarqueeSpeed, marqueePaused, setMarqueePaused, onBack, onStartDraw 
 }) => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'tiers' | 'announcement' | 'stats' | 'completed' | 'awaiting_tid' | 'calculator'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'tiers' | 'announcement' | 'stats' | 'completed' | 'awaiting_tid' | 'calculator' | 'ads' | 'terms'>('users');
   const [userFilter, setUserFilter] = useState<EntryStatus | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
-  const [newTier, setNewTier] = useState<Partial<InvestmentOption>>({ investAmount: 0, winAmount: 0, membersNeeded: 100, currentMembers: 0, qrData: '', color: 'from-green-600 to-green-900' });
+  const [newTier, setNewTier] = useState<Partial<InvestmentOption>>({ 
+    investAmount: 0, 
+    winAmount: 0, 
+    membersNeeded: 100, 
+    currentMembers: 0, 
+    qrData: '', 
+    color: 'from-green-600 to-green-900',
+    cardType: 'MEMBER_BASED',
+    bonusPercentage: 0,
+    termsIds: []
+  });
   const [editingTierId, setEditingTierId] = useState<string | null>(null);
   const [editTierData, setEditTierData] = useState<Partial<InvestmentOption>>({});
   const [newAnn, setNewAnn] = useState({ text: '', textEn: '' });
+  
+  const [newAd, setNewAd] = useState<Partial<AdService>>({ title: '', link: '', category: 'General' });
+  const [newTerm, setNewTerm] = useState<Partial<TermCondition>>({ text: '', textEn: '' });
 
   // Calculator State
   const [calcData, setCalcData] = useState({
@@ -201,9 +220,17 @@ const AdminDashboard: React.FC<Props> = ({
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-grow">
-          {['users', 'awaiting_tid', 'tiers', 'announcement', 'stats', 'completed', 'calculator'].map(tab => (
+          {['users', 'awaiting_tid', 'tiers', 'ads', 'terms', 'announcement', 'stats', 'completed', 'calculator'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${activeTab === tab ? 'bg-green-600 text-white shadow-lg' : 'bg-white border text-gray-500'}`}>
-              {tab === 'users' ? 'درخواستیں' : tab === 'awaiting_tid' ? 'بغیر TID درخواستیں' : tab === 'tiers' ? 'کارڈز سیٹنگ' : tab === 'announcement' ? 'اناؤنسمنٹ پٹی' : tab === 'stats' ? 'کارڈ شماریات' : tab === 'completed' ? 'مکمل کارڈز (Draw)' : tab === 'calculator' ? 'منافع کیلکولیٹر' : ''}
+              {tab === 'users' ? 'درخواستیں' : 
+               tab === 'awaiting_tid' ? 'بغیر TID درخواستیں' : 
+               tab === 'tiers' ? 'کارڈز سیٹنگ' : 
+               tab === 'ads' ? 'ایڈز / سروسز' :
+               tab === 'terms' ? 'شرائط و ضوابط' :
+               tab === 'announcement' ? 'اناؤنسمنٹ پٹی' : 
+               tab === 'stats' ? 'کارڈ شماریات' : 
+               tab === 'completed' ? 'مکمل کارڈز (Draw)' : 
+               tab === 'calculator' ? 'منافع کیلکولیٹر' : ''}
             </button>
           ))}
         </div>
@@ -542,6 +569,14 @@ const AdminDashboard: React.FC<Props> = ({
             <h3 className="font-black flex items-center gap-2 text-green-700 border-b pb-3"><Plus className="w-5 h-5" /> نیا کارڈ شامل کریں</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">کارڈ کی قسم (Card Type)</label>
+                <select value={newTier.cardType} className="w-full p-2 border rounded-xl text-sm" onChange={e => setNewTier({...newTier, cardType: e.target.value as any})}>
+                  <option value="MEMBER_BASED">ممبر بیسڈ (Member Based)</option>
+                  <option value="TIME_BASED">ٹائم بیسڈ (Time Based)</option>
+                  <option value="CUSTOM_DESIGN">کسٹم ڈیزائن (Custom Design)</option>
+                </select>
+              </div>
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">انویسٹمنٹ رقم</label>
                 <input type="number" value={newTier.investAmount ?? 0} className="w-full p-2 border rounded-xl text-sm" onChange={e => setNewTier({...newTier, investAmount: +e.target.value})} />
               </div>
@@ -553,9 +588,43 @@ const AdminDashboard: React.FC<Props> = ({
                 <label className="text-[10px] font-bold text-gray-400 uppercase">ممبر لمٹ</label>
                 <input type="number" value={newTier.membersNeeded ?? 0} className="w-full p-2 border rounded-xl text-sm" onChange={e => setNewTier({...newTier, membersNeeded: +e.target.value})} />
               </div>
+              
+              {newTier.cardType === 'TIME_BASED' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">قرعہ اندازی کی تاریخ (Draw Date)</label>
+                  <input type="datetime-local" className="w-full p-2 border rounded-xl text-sm" onChange={e => setNewTier({...newTier, drawDate: new Date(e.target.value).getTime()})} />
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">انوائٹ بونس (%)</label>
+                <input type="number" value={newTier.bonusPercentage ?? 0} className="w-full p-2 border rounded-xl text-sm" onChange={e => setNewTier({...newTier, bonusPercentage: +e.target.value})} />
+              </div>
+
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">والٹ نمبر</label>
                 <input type="text" value={newTier.qrData ?? ''} className="w-full p-2 border rounded-xl text-sm" onChange={e => setNewTier({...newTier, qrData: e.target.value})} />
+              </div>
+
+              <div className="col-span-2 space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">شرائط منتخب کریں (Select Terms)</label>
+                <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-2 border rounded-xl">
+                  {terms.map(term => (
+                    <label key={term.id} className="flex items-center gap-2 text-[10px] font-bold bg-gray-50 px-2 py-1 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input 
+                        type="checkbox" 
+                        checked={newTier.termsIds?.includes(term.id)} 
+                        onChange={e => {
+                          const current = newTier.termsIds || [];
+                          const updated = e.target.checked ? [...current, term.id] : current.filter(id => id !== term.id);
+                          setNewTier({...newTier, termsIds: updated});
+                        }}
+                      />
+                      {term.text.substring(0, 20)}...
+                    </label>
+                  ))}
+                  {terms.length === 0 && <span className="text-[10px] text-gray-400 italic">کوئی شرائط موجود نہیں</span>}
+                </div>
               </div>
 
               {/* Live Calculation for New Tier */}
@@ -599,6 +668,19 @@ const AdminDashboard: React.FC<Props> = ({
                   </div>
                 </div>
               </div>
+              
+              {newTier.cardType === 'CUSTOM_DESIGN' && (
+                <div className="col-span-2 md:col-span-4 grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-gray-400 uppercase">ٹیکسٹ کلر (Text Color)</label>
+                     <input type="color" value={newTier.customTextColor || '#000000'} onChange={e => setNewTier({...newTier, customTextColor: e.target.value})} className="w-full h-10 rounded-xl cursor-pointer" />
+                   </div>
+                   <div className="space-y-1">
+                     <label className="text-[10px] font-bold text-gray-400 uppercase">بیک گراؤنڈ امیج (BG Image URL)</label>
+                     <input type="text" value={newTier.customBgImage || ''} onChange={e => setNewTier({...newTier, customBgImage: e.target.value})} className="w-full p-2 border rounded-xl text-sm" placeholder="https://..." />
+                   </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-4 pt-2">
               <div className="relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
@@ -632,6 +714,84 @@ const AdminDashboard: React.FC<Props> = ({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'ads' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+            <h3 className="font-black border-b pb-3">نئی سروس / اشتہار شامل کریں</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="text" placeholder="ٹائٹل (Title)" className="p-3 bg-gray-50 border rounded-xl text-sm" value={newAd.title} onChange={e => setNewAd({...newAd, title: e.target.value})} />
+              <input type="text" placeholder="لنک (Link URL)" className="p-3 bg-gray-50 border rounded-xl text-sm" value={newAd.link} onChange={e => setNewAd({...newAd, link: e.target.value})} />
+              <select className="p-3 bg-gray-50 border rounded-xl text-sm" value={newAd.category} onChange={e => setNewAd({...newAd, category: e.target.value})}>
+                <option value="General">General</option>
+                <option value="Investment">Investment</option>
+                <option value="Education">Education</option>
+                <option value="Health">Health</option>
+              </select>
+              <input type="text" placeholder="امیج لنک (Image URL)" className="p-3 bg-gray-50 border rounded-xl text-sm" value={newAd.imageUrl} onChange={e => setNewAd({...newAd, imageUrl: e.target.value})} />
+            </div>
+            <button 
+              onClick={() => {
+                if (newAd.title && newAd.link) {
+                  setAds(prev => [...prev, { ...newAd, id: Date.now().toString(), active: true } as AdService]);
+                  setNewAd({ title: '', link: '', category: 'General' });
+                }
+              }}
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+            >
+              ایڈ شامل کریں
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {ads.map(ad => (
+              <div key={ad.id} className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
+                {ad.imageUrl && <img src={ad.imageUrl} className="w-full h-24 object-cover rounded-xl" />}
+                <div className="font-black text-sm">{ad.title}</div>
+                <div className="text-[10px] text-gray-400 truncate">{ad.link}</div>
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{ad.category}</span>
+                  <button onClick={() => setAds(prev => prev.filter(a => a.id !== ad.id))} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'terms' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
+            <h3 className="font-black border-b pb-3">نئی شرط شامل کریں (Add Term)</h3>
+            <div className="space-y-3">
+              <textarea placeholder="اردو میں لکھیں..." className="w-full p-4 bg-gray-50 border rounded-2xl text-sm" rows={2} value={newTerm.text} onChange={e => setNewTerm({...newTerm, text: e.target.value})} />
+              <textarea placeholder="Write in English..." className="w-full p-4 bg-gray-50 border rounded-2xl text-sm" rows={2} value={newTerm.textEn} onChange={e => setNewTerm({...newTerm, textEn: e.target.value})} />
+            </div>
+            <button 
+              onClick={() => {
+                if (newTerm.text) {
+                  setTerms(prev => [...prev, { ...newTerm, id: Date.now().toString() } as TermCondition]);
+                  setNewTerm({ text: '', textEn: '' });
+                }
+              }}
+              className="w-full py-4 bg-green-600 text-white rounded-2xl font-black shadow-lg shadow-green-100 hover:bg-green-700 transition-all"
+            >
+              شرط شامل کریں
+            </button>
+          </div>
+          <div className="bg-white rounded-3xl border overflow-hidden shadow-sm divide-y">
+            {terms.map((term, idx) => (
+              <div key={term.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-all">
+                <div className="space-y-1">
+                  <div className="text-xs font-black text-gray-800">{idx + 1}. {term.text}</div>
+                  <div className="text-[10px] text-gray-400">{term.textEn}</div>
+                </div>
+                <button onClick={() => setTerms(prev => prev.filter(t => t.id !== term.id))} className="p-2 text-red-400 hover:bg-red-50 rounded-xl"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+            {terms.length === 0 && <div className="p-10 text-center text-gray-300 italic">کوئی شرائط موجود نہیں</div>}
           </div>
         </div>
       )}

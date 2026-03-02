@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { X, ShieldAlert, CheckCircle2, QrCode, ClipboardCopy, ArrowLeft, Globe, Check, Trophy, AlertTriangle, Download, Sparkles, Facebook, Twitter, Link } from 'lucide-react';
-import { InvestmentOption, Participant, EntryStatus, Language } from '../types';
+import { X, ShieldAlert, CheckCircle2, QrCode, ClipboardCopy, ArrowLeft, Globe, Check, Trophy, AlertTriangle, Download, Sparkles, Facebook, Twitter, Link, Users, ShieldCheck, Info, Key, ArrowRight } from 'lucide-react';
+import { InvestmentOption, Participant, EntryStatus, Language, TermCondition } from '../types';
 import { NETWORKS, TRANSLATIONS } from '../constants';
 
 interface Props {
@@ -11,10 +11,11 @@ interface Props {
   lang: Language;
   onToggleLang: () => void;
   existingParticipants: Participant[];
+  allTerms: TermCondition[];
 }
 
-const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, onToggleLang, existingParticipants }) => {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, onToggleLang, existingParticipants, allTerms }) => {
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
   const t = TRANSLATIONS[lang] as any;
   const [formData, setFormData] = useState({
     name: '',
@@ -23,8 +24,11 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
     secondaryPhone: '',
     secondaryNetwork: '',
     trackingId: '',
-    agreements: [false, false, false]
+    agreements: [false, false, false],
+    acceptedTerms: false
   });
+
+  const tierTerms = allTerms.filter(term => tier.termsIds?.includes(term.id));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -39,9 +43,30 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
     if (formData.name.trim().length < 3) newErrors.name = lang === 'ur' ? 'مکمل نام لکھیں' : 'Enter full name';
     if (!/^03\d{9}$/.test(formData.phone)) newErrors.phone = lang === 'ur' ? 'درست نمبر لکھیں' : 'Enter valid number';
     if (!formData.network) newErrors.network = lang === 'ur' ? 'نیٹ ورک سلیکٹ کریں' : 'Select network';
+    if (!formData.acceptedTerms) newErrors.terms = lang === 'ur' ? 'شرائط قبول کریں' : 'Accept terms';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (step === 0) {
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
+      if (validateInfo()) setStep(2);
+      return;
+    }
+    if (step === 2) {
+      setStep(3);
+      return;
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 0) onClose();
+    else setStep((step - 1) as any);
   };
 
   const handleFinish = (skipTID: boolean = false) => {
@@ -67,12 +92,14 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
       secondaryPhone: formData.secondaryPhone,
       secondaryNetwork: formData.secondaryNetwork,
       categoryId: tier.id,
-      investAmount: tier.investAmount, // Add this line
+      investAmount: tier.investAmount,
       trackingId: skipTID ? '' : formData.trackingId,
       status: skipTID ? EntryStatus.AWAITING_TID : EntryStatus.PENDING,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      referredBy: localStorage.getItem('luckwin_ref') || undefined
     };
     onRegister(newParticipant);
+    localStorage.removeItem('luckwin_ref'); // Clear after use
     setStep(4);
   };
 
@@ -100,8 +127,8 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
           style={tier.color?.startsWith('#') ? { background: `linear-gradient(to right, ${tier.color}, ${tier.color}dd)` } : {}}
         >
           <div className="flex items-center gap-3">
-            {step > 1 && step < 4 && (
-              <button onClick={() => setStep((step - 1) as any)} className="p-2 hover:bg-white/20 rounded-xl transition-all">
+            {step < 4 && (
+              <button onClick={handleBack} className="p-2 hover:bg-white/20 rounded-xl transition-all">
                 <ArrowLeft className={`w-5 h-5 ${lang === 'ur' ? 'rotate-180' : ''}`} />
               </button>
             )}
@@ -114,8 +141,68 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
         </div>
 
         <div className="p-6">
+          {step === 0 && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="text-center space-y-2">
+                <div className={`inline-block px-4 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-widest ${tier.color?.startsWith('#') ? '' : `bg-gradient-to-r ${tier.color || 'from-green-800 to-green-600'}`}`} style={tier.color?.startsWith('#') ? { background: tier.color } : {}}>
+                  {tier.cardType?.replace('_', ' ')}
+                </div>
+                <h4 className="text-3xl font-black text-gray-900">Rs. {tier.investAmount}</h4>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{lang === 'ur' ? 'انویسٹمنٹ رقم' : 'Investment Amount'}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100 text-center">
+                  <Trophy className="w-6 h-6 text-yellow-500 mx-auto mb-1" />
+                  <div className="text-lg font-black text-gray-900">Rs. {tier.winAmount.toLocaleString()}</div>
+                  <div className="text-[8px] text-gray-400 font-bold uppercase">{lang === 'ur' ? 'جیتنے والی رقم' : 'Winning Amount'}</div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100 text-center">
+                  <Users className="w-6 h-6 text-blue-500 mx-auto mb-1" />
+                  <div className="text-lg font-black text-gray-900">{tier.membersNeeded}</div>
+                  <div className="text-[8px] text-gray-400 font-bold uppercase">{lang === 'ur' ? 'کل ممبرز' : 'Total Members'}</div>
+                </div>
+              </div>
+
+              {tier.cardType === 'TIME_BASED' && tier.drawDate && (
+                <div className="p-3 bg-red-50 border border-red-100 rounded-2xl flex justify-between items-center">
+                  <span className="text-[10px] font-black text-red-600 uppercase">{lang === 'ur' ? 'قرعہ اندازی کی تاریخ' : 'Draw Date'}</span>
+                  <span className="text-xs font-black text-red-700">
+                    {new Date(tier.drawDate).toLocaleDateString('en-PK', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{lang === 'ur' ? 'شرائط و ضوابط' : 'Terms & Conditions'}</p>
+                <div className="space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-hide">
+                  {tierTerms.length > 0 ? tierTerms.map((term, i) => (
+                    <div key={term.id} className="flex gap-2 text-[10px] font-bold text-gray-600 leading-relaxed">
+                      <span className="text-green-600">{i + 1}.</span>
+                      <span>{lang === 'ur' ? term.text : term.textEn}</span>
+                    </div>
+                  )) : (
+                    <p className="text-[10px] text-gray-400 italic">{lang === 'ur' ? 'اس کارڈ کے لیے کوئی خاص شرائط نہیں ہیں۔' : 'No specific terms for this card.'}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <Info className="w-5 h-5 text-blue-600 shrink-0" />
+                <p className="text-[10px] font-bold text-blue-800 leading-tight">
+                  {lang === 'ur' ? 'رجسٹریشن کے بعد آپ کو ایک "سیکرٹ ٹوکن" ملے گا جسے سنبھال کر رکھیں۔ یہ ٹوکن آپ کی جیت کی صورت میں انعام وصول کرنے کے لیے ضروری ہوگا۔' : 'After registration, you will receive a "Secret Token". Keep it safe as it will be required to claim your prize if you win.'}
+                </p>
+              </div>
+
+              <button onClick={handleNext} className="w-full py-5 bg-green-600 text-white rounded-2xl font-black shadow-xl shadow-green-100 hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-2">
+                {lang === 'ur' ? 'رجسٹریشن شروع کریں' : 'Start Registration'}
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
           {step === 1 && (
-            <div className="space-y-5">
+            <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="bg-green-50 p-3 rounded-2xl border border-green-100 flex gap-3">
                 <Sparkles className="w-5 h-5 text-green-600 shrink-0" />
                 <p className="text-[11px] text-green-800 font-bold leading-relaxed">{lang === 'ur' ? 'اپنی معلومات درست ڈالیں، اسٹیٹس چیک کرنے اور انعام کے لیے یہی تفصیلات استعمال ہوں گی۔' : 'Enter correct info for status checking and prizes.'}</p>
@@ -138,8 +225,20 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
                     </select>
                   </div>
                 </div>
+
+                <label className="flex items-start gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    className="mt-1 w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    checked={formData.acceptedTerms}
+                    onChange={e => setFormData({...formData, acceptedTerms: e.target.checked})}
+                  />
+                  <span className={`text-[10px] font-bold leading-relaxed transition-colors ${errors.terms ? 'text-red-500' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                    {lang === 'ur' ? 'میں نے تمام شرائط و ضوابط پڑھ لی ہیں اور میں ان سے متفق ہوں۔' : 'I have read and agree to all Terms & Conditions.'}
+                  </span>
+                </label>
               </div>
-              <button onClick={() => validateInfo() && setStep(2)} className="w-full py-4 bg-green-600 text-white rounded-2xl font-black shadow-xl shadow-green-100 active:scale-95 transition-all text-sm uppercase tracking-widest">آگے بڑھیں</button>
+              <button onClick={handleNext} className="w-full py-4 bg-green-600 text-white rounded-2xl font-black shadow-xl shadow-green-100 active:scale-95 transition-all text-sm uppercase tracking-widest">آگے بڑھیں</button>
             </div>
           )}
 
@@ -170,7 +269,7 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
           )}
 
           {step === 3 && (
-            <div className="space-y-5 text-center">
+            <div className="space-y-5 text-center animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="space-y-1">
                 <h4 className="font-black text-xl text-gray-800 uppercase">{t.paymentTitle}</h4>
                 <p className="text-[11px] text-gray-400 font-bold">{t.paymentSub}</p>
@@ -203,16 +302,22 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
                 </div>
               </div>
               <div className="text-right space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">ٹریکنگ آئی ڈی (TID)</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">ٹریکنگ آئی ڈی (TID)</label>
+                  <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest italic">{lang === 'ur' ? '(اختیاری)' : '(Optional)'}</span>
+                </div>
                 <input type="text" value={formData.trackingId} onChange={e => setFormData({...formData, trackingId: e.target.value})} className={`w-full p-4 bg-white border-2 rounded-2xl text-center font-mono font-black text-2xl outline-none transition-all shadow-sm ${errors.trackingId ? 'border-red-500' : 'border-green-100 focus:border-green-600'}`} placeholder="e.g. 123456789" />
                 {errors.trackingId && <p className="text-[9px] text-red-500 font-bold text-center mt-1">{errors.trackingId}</p>}
+                <p className="text-[9px] text-gray-400 font-bold text-center mt-1">
+                  {lang === 'ur' ? 'اگر آپ کے پاس ابھی TID نہیں ہے تو آپ اسے بعد میں بھی اپڈیٹ کر سکتے ہیں۔' : 'If you don\'t have a TID yet, you can update it later.'}
+                </p>
               </div>
               <div className="space-y-3">
                 <button onClick={() => handleFinish(false)} className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black shadow-2xl active:scale-95 transition-all uppercase tracking-[0.2em] text-sm">{t.enterTIDNow}</button>
                 <button onClick={() => handleFinish(true)} className="w-full py-3 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-all text-[10px] leading-tight px-4">
                   {lang === 'ur' 
-                    ? 'اگر آپ کے پاس ٹریکنگ آئی ڈی نہیں ہے تو بعد میں آپ اپنے ڈیش بورڈ سے سینڈ کر سکتے ہیں ابھی کنٹینیو کریں سکیپ کر دیں' 
-                    : 'If you don\'t have a Tracking ID, you can send it later from your dashboard. Continue/Skip for now'}
+                    ? 'بعد میں TID دوں گا (سکیپ کریں)' 
+                    : 'Skip TID for now'}
                 </button>
               </div>
             </div>
@@ -237,7 +342,7 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
                 <div className="grid grid-cols-2 gap-2">
                   <button 
                     onClick={() => {
-                      const shareMsg = `${t.heroTitle}\nInvest Rs. ${tier.investAmount} & Win Rs. ${tier.winAmount}!\nJoin here: ${window.location.origin}`;
+                      const shareMsg = `${t.heroTitle}\nInvest Rs. ${tier.investAmount} & Win Rs. ${tier.winAmount}!\nJoin here: ${window.location.origin}?card=${tier.id}`;
                       window.open(`https://wa.me/?text=${encodeURIComponent(shareMsg)}`, '_blank');
                     }}
                     className="w-full py-3 bg-[#25D366] text-white rounded-xl font-black text-[10px] flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
@@ -246,7 +351,7 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
                   </button>
                   <button 
                     onClick={() => {
-                      const url = window.location.origin;
+                      const url = `${window.location.origin}?card=${tier.id}`;
                       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
                     }}
                     className="w-full py-3 bg-[#1877F2] text-white rounded-xl font-black text-[10px] flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
@@ -256,7 +361,7 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
                   <button 
                     onClick={() => {
                       const text = t.heroTitle;
-                      const url = window.location.origin;
+                      const url = `${window.location.origin}?card=${tier.id}`;
                       window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
                     }}
                     className="w-full py-3 bg-[#1DA1F2] text-white rounded-xl font-black text-[10px] flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"
@@ -265,7 +370,8 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
                   </button>
                   <button 
                     onClick={() => {
-                      navigator.clipboard.writeText(window.location.origin);
+                      const url = `${window.location.origin}?card=${tier.id}`;
+                      navigator.clipboard.writeText(url);
                       alert(lang === 'ur' ? 'لنک کاپی ہو گیا!' : 'Link Copied!');
                     }}
                     className="w-full py-3 bg-white text-gray-700 rounded-xl font-black text-[10px] flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all"

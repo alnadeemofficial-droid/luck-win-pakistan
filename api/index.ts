@@ -144,6 +144,26 @@ app.post("/api/announcements", async (req, res) => {
   }
 });
 
+app.post("/api/ads", async (req, res) => {
+  try {
+    const result = await callAppsScript('saveAds', { ads: req.body });
+    res.json(result);
+  } catch (e: any) {
+    console.error("Error in /api/ads:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
+});
+
+app.post("/api/terms", async (req, res) => {
+  try {
+    const result = await callAppsScript('saveTerms', { terms: req.body });
+    res.json(result);
+  } catch (e: any) {
+    console.error("Error in /api/terms:", e);
+    res.status(500).json({ status: 'error', message: e.toString() });
+  }
+});
+
 app.post("/api/admin/login", async (req, res) => {
   try {
     const { username, password } = req.body;
