@@ -610,9 +610,9 @@ const App: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {ads.filter(ad => ad.active).map(ad => (
+              {ads.filter(ad => ad.active).map((ad, idx) => (
                 <a 
-                  key={ad.id} 
+                  key={`${ad.id}-${idx}`} 
                   href={ad.link} 
                   target="_blank" 
                   rel="noopener noreferrer"

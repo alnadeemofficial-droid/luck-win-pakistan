@@ -609,8 +609,8 @@ const AdminDashboard: React.FC<Props> = ({
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase">شرائط منتخب کریں (Select Terms)</label>
                 <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-2 border rounded-xl">
-                  {terms.map(term => (
-                    <label key={term.id} className="flex items-center gap-2 text-[10px] font-bold bg-gray-50 px-2 py-1 rounded-lg cursor-pointer hover:bg-gray-100">
+                  {terms.map((term, idx) => (
+                    <label key={`${term.id}-${idx}`} className="flex items-center gap-2 text-[10px] font-bold bg-gray-50 px-2 py-1 rounded-lg cursor-pointer hover:bg-gray-100">
                       <input 
                         type="checkbox" 
                         checked={newTier.termsIds?.includes(term.id)} 
@@ -693,8 +693,8 @@ const AdminDashboard: React.FC<Props> = ({
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {tiers.map(t => (
-              <div key={t.id} className={`bg-white p-5 rounded-3xl border shadow-sm flex gap-4 hover:shadow-md transition-all ${t.isExpired ? 'opacity-50 grayscale' : ''}`}>
+            {tiers.map((t, idx) => (
+              <div key={`${t.id}-${idx}`} className={`bg-white p-5 rounded-3xl border shadow-sm flex gap-4 hover:shadow-md transition-all ${t.isExpired ? 'opacity-50 grayscale' : ''}`}>
                 <div 
                   className={`w-20 h-20 rounded-2xl border flex items-center justify-center overflow-hidden shrink-0 ${t.color?.startsWith('#') ? '' : `bg-gradient-to-br ${t.color || 'from-gray-100 to-gray-200'}`}`}
                   style={t.color?.startsWith('#') ? { background: `linear-gradient(135deg, ${t.color}, ${t.color}dd)` } : {}}
@@ -731,7 +731,7 @@ const AdminDashboard: React.FC<Props> = ({
                 <option value="Education">Education</option>
                 <option value="Health">Health</option>
               </select>
-              <input type="text" placeholder="امیج لنک (Image URL)" className="p-3 bg-gray-50 border rounded-xl text-sm" value={newAd.imageUrl} onChange={e => setNewAd({...newAd, imageUrl: e.target.value})} />
+              <input type="text" placeholder="امیج لنک (Image URL)" className="p-3 bg-gray-50 border rounded-xl text-sm" value={newAd.imageUrl || ''} onChange={e => setNewAd({...newAd, imageUrl: e.target.value})} />
             </div>
             <button 
               onClick={() => {
@@ -746,8 +746,8 @@ const AdminDashboard: React.FC<Props> = ({
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {ads.map(ad => (
-              <div key={ad.id} className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
+            {ads.map((ad, idx) => (
+              <div key={`${ad.id}-${idx}`} className="bg-white p-4 rounded-2xl border shadow-sm space-y-3">
                 {ad.imageUrl && <img src={ad.imageUrl} className="w-full h-24 object-cover rounded-xl" />}
                 <div className="font-black text-sm">{ad.title}</div>
                 <div className="text-[10px] text-gray-400 truncate">{ad.link}</div>
@@ -766,8 +766,8 @@ const AdminDashboard: React.FC<Props> = ({
           <div className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
             <h3 className="font-black border-b pb-3">نئی شرط شامل کریں (Add Term)</h3>
             <div className="space-y-3">
-              <textarea placeholder="اردو میں لکھیں..." className="w-full p-4 bg-gray-50 border rounded-2xl text-sm" rows={2} value={newTerm.text} onChange={e => setNewTerm({...newTerm, text: e.target.value})} />
-              <textarea placeholder="Write in English..." className="w-full p-4 bg-gray-50 border rounded-2xl text-sm" rows={2} value={newTerm.textEn} onChange={e => setNewTerm({...newTerm, textEn: e.target.value})} />
+              <textarea placeholder="اردو میں لکھیں..." className="w-full p-4 bg-gray-50 border rounded-2xl text-sm" rows={2} value={newTerm.text || ''} onChange={e => setNewTerm({...newTerm, text: e.target.value})} />
+              <textarea placeholder="Write in English..." className="w-full p-4 bg-gray-50 border rounded-2xl text-sm" rows={2} value={newTerm.textEn || ''} onChange={e => setNewTerm({...newTerm, textEn: e.target.value})} />
             </div>
             <button 
               onClick={() => {
@@ -783,7 +783,7 @@ const AdminDashboard: React.FC<Props> = ({
           </div>
           <div className="bg-white rounded-3xl border overflow-hidden shadow-sm divide-y">
             {terms.map((term, idx) => (
-              <div key={term.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-all">
+              <div key={`${term.id}-${idx}`} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-all">
                 <div className="space-y-1">
                   <div className="text-xs font-black text-gray-800">{idx + 1}. {term.text}</div>
                   <div className="text-[10px] text-gray-400">{term.textEn}</div>
@@ -872,8 +872,8 @@ const AdminDashboard: React.FC<Props> = ({
 
           <div className="bg-white rounded-3xl border overflow-hidden shadow-sm divide-y divide-gray-100">
             <div className="p-4 bg-gray-50 text-[10px] font-black text-gray-400 uppercase">موجودہ لسٹ</div>
-            {announcements.map(ann => (
-              <div key={ann.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
+            {announcements.map((ann, idx) => (
+              <div key={`${ann.id}-${idx}`} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
                 <div className="space-y-1">
                   <div className="text-sm font-black text-gray-800">{ann.text}</div>
                   <div className="text-[10px] text-gray-400">{ann.textEn}</div>
@@ -898,14 +898,14 @@ const AdminDashboard: React.FC<Props> = ({
       {activeTab === 'stats' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {tiers.map(t => {
+            {tiers.map((t, idx) => {
               const approvedCount = participants.filter(p => p.categoryId === t.id && p.status === EntryStatus.APPROVED).length;
               const totalCount = approvedCount + (t.currentMembers || 0);
               const progress = Math.min((totalCount / t.membersNeeded) * 100, 100);
               const revenue = approvedCount * t.investAmount;
 
               return (
-                <div key={t.id} className="bg-white p-6 rounded-[32px] border shadow-sm space-y-4">
+                <div key={`${t.id}-${idx}`} className="bg-white p-6 rounded-[32px] border shadow-sm space-y-4">
                   <div className="flex justify-between items-start">
                     <div 
                       className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black ${t.color?.startsWith('#') ? '' : `bg-gradient-to-br ${t.color || 'from-gray-100 to-gray-200'}`}`}
@@ -952,8 +952,8 @@ const AdminDashboard: React.FC<Props> = ({
             {tiers.filter(t => {
               const approvedCount = participants.filter(p => p.categoryId === t.id && p.status === EntryStatus.APPROVED).length;
               return (approvedCount + (t.currentMembers || 0)) >= t.membersNeeded;
-            }).map(t => (
-              <div key={t.id} className="bg-white p-6 rounded-[32px] border shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
+            }).map((t, idx) => (
+              <div key={`${t.id}-${idx}`} className="bg-white p-6 rounded-[32px] border shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
                 <div className="flex items-center gap-4">
                   <div 
                     className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-black text-xl ${t.color?.startsWith('#') ? '' : `bg-gradient-to-br ${t.color || 'from-green-600 to-green-900'}`}`}

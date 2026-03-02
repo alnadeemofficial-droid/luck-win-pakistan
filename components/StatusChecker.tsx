@@ -143,7 +143,7 @@ const StatusChecker: React.FC<Props> = ({ participants, tiers, lang, onBack, upd
                   const bonusAmount = tier?.bonusPercentage ? (tier.winAmount * tier.bonusPercentage / 100) : 0;
 
                   return (
-                    <div key={entry.id} className="bg-white border border-gray-100 p-5 rounded-[28px] shadow-sm space-y-4 relative overflow-hidden group">
+                    <div key={`${entry.id}-${index}`} className="bg-white border border-gray-100 p-5 rounded-[28px] shadow-sm space-y-4 relative overflow-hidden group">
                       <div className="flex justify-between items-start">
                         <div>
                           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{lang === 'ur' ? 'انٹری نمبر' : 'Entry'} #{index + 1}</span>

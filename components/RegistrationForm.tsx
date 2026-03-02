@@ -177,7 +177,7 @@ const RegistrationForm: React.FC<Props> = ({ tier, onClose, onRegister, lang, on
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{lang === 'ur' ? 'شرائط و ضوابط' : 'Terms & Conditions'}</p>
                 <div className="space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-hide">
                   {tierTerms.length > 0 ? tierTerms.map((term, i) => (
-                    <div key={term.id} className="flex gap-2 text-[10px] font-bold text-gray-600 leading-relaxed">
+                    <div key={`${term.id}-${i}`} className="flex gap-2 text-[10px] font-bold text-gray-600 leading-relaxed">
                       <span className="text-green-600">{i + 1}.</span>
                       <span>{lang === 'ur' ? term.text : term.textEn}</span>
                     </div>
