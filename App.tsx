@@ -319,7 +319,7 @@ const App: React.FC = () => {
                 const cardColor = tier.color || (isExample ? 'from-yellow-600 to-yellow-800' : 'from-green-600 to-green-900');
 
                 return (
-                  <div key={tier.id} className={`bg-white rounded-[20px] md:rounded-[30px] shadow-xl overflow-hidden border-2 flex flex-col transition-all duration-300 transform hover:-translate-y-2 group relative ${isExample ? 'border-yellow-400' : 'border-gray-100'}`}>
+                  <div key={tier.id || `tier-${index}`} className={`bg-white rounded-[20px] md:rounded-[30px] shadow-xl overflow-hidden border-2 flex flex-col transition-all duration-300 transform hover:-translate-y-2 group relative ${isExample ? 'border-yellow-400' : 'border-gray-100'}`}>
                     {isExample && (
                       <div className="absolute top-4 -right-8 bg-yellow-400 text-yellow-900 text-[8px] font-black py-1 px-10 rotate-45 z-10 shadow-sm uppercase tracking-tighter">
                         {lang === 'ur' ? 'مثال (Example)' : 'Example Card'}
